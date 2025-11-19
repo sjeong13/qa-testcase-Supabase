@@ -102,7 +102,7 @@ if st.button("임베딩과 함께 저장"):
                     "name": save_name,
                     "description": save_description
                 },
-                "embedding": embedding
+                "embedding": str(embedding)
             }).execute()
 
         st.success("✅ 저장 완료!")
