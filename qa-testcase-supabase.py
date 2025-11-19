@@ -212,3 +212,130 @@ if st.button("⚠️ 모든 데이터 삭제", type="secondary"):
             st.success(f"✅ {len(result.data)}개 삭제 완료!")
         except Exception as e:
             st.error(f"❌ 삭제 실패: {str(e)}")
+
+
+st.markdown("---")
+
+# ============================================
+# 7. 개별 저장 테스트
+# ============================================
+st.header("7️⃣ 개별 저장 테스트")
+
+st.info("💡 그룹 데이터를 개별 케이스로 쪼개서 저장하는 테스트")
+
+# supabase_helpers import
+try:
+    from supabase_helpers import save_test_case_to_supabase, search_similar_test_cases
+    st.success("✅ supabase_helpers 로드 성공")
+except ImportError as e:
+    st.error(f"❌ supabase_helpers.py 파일이 필요합니다: {str(e)}")
+    st.stop()
+
+# 테스트용 그룹 데이터
+test_group = {
+    "group_id": "test_group_001",
+    "input_type": "table_group",
+    "name": "테스트 그룹 (3개)",
+    "table_data": [
+        {
+            "NO": "1",
+            "CATEGORY": "쿠폰",
+            "DEPTH 1": "쿠폰 발행",
+            "DEPTH 2": "지정 발행",
+            "DEPTH 3": "",
+            "PRE-CONDITION": "쿠폰 생성 완료",
+            "STEP": "BO에서 쿠폰 지정 발행",
+            "EXPECT RESULT": "회원에게 쿠폰 발급됨"
+        },
+        {
+            "NO": "2",
+            "CATEGORY": "쿠폰",
+            "DEPTH 1": "쿠폰 사용",
+            "DEPTH 2": "결제 시 사용",
+            "DEPTH 3": "",
+            "PRE-CONDITION": "쿠폰 발급 완료",
+            "STEP": "FO에서 쿠폰 사용",
+            "EXPECT RESULT": "할인 적용됨"
+        },
+        {
+            "NO": "3",
+            "CATEGORY": "쿠폰",
+            "DEPTH 1": "쿠폰 삭제",
+            "DEPTH 2": "관리자 삭제",
+            "DEPTH 3": "",
+            "PRE-CONDITION": "쿠폰 존재",
+            "STEP": "BO에서 쿠폰 삭제",
+            "EXPECT RESULT": "쿠폰 삭제됨"
+        }
+    ]
+}
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🧪 그룹 저장 테스트 (3개 → 3 rows)", use_container_width=True):
+        with st.spinner("개별 케이스로 쪼개서 저장 중..."):
+            count = save_test_case_to_supabase(test_group)
+        
+        if count > 0:
+            st.success(f"✅ {count}개 개별 저장 완료!")
+            st.info("👉 '4️⃣ 저장된 데이터 조회'에서 확인하세요")
+        else:
+            st.error("❌ 저장 실패")
+
+with col2:
+    if st.button("🔍 개별 검색 테스트", use_container_width=True):
+        with st.spinner("'쿠폰 사용'으로 검색 중..."):
+            results = search_similar_test_cases("쿠폰 사용", limit=10)
+        
+        if results:
+            st.success(f"✅ {len(results)}개 발견!")
+            for r in results:
+                similarity = r.get('similarity', 0)
+                st.write(f"- **{r.get('name')}** (유사도: {similarity:.2%})")
+        else:
+            st.warning("검색 결과 없음")
+
+st.markdown("---")
+
+# ============================================
+# 8. Supabase 데이터 확인
+# ============================================
+st.header("8️⃣ Supabase 직접 확인")
+
+if st.button("📊 Supabase 전체 데이터 (상세)"):
+    try:
+        result = supabase.table('test_cases').select('*').execute()
+        
+        st.write(f"**총 {len(result.data)}개**")
+        
+        import pandas as pd
+        if result.data:
+            # 주요 컬럼만 표시
+            display_data = []
+            for row in result.data:
+                display_data.append({
+                    'id': row['id'],
+                    'category': row['category'],
+                    'name': row['name'],
+                    'group_id': row['data'].get('group_id', '-'),
+                    'created_at': row['created_at']
+                })
+            
+            df = pd.DataFrame(display_data)
+            st.dataframe(df, use_container_width=True)
+            
+            # group_id로 그룹핑
+            groups = {}
+            for row in result.data:
+                gid = row['data'].get('group_id')
+                if gid:
+                    groups[gid] = groups.get(gid, 0) + 1
+            
+            if groups:
+                st.write("**그룹별 개수:**")
+                for gid, count in groups.items():
+                    st.write(f"- {gid}: {count}개")
+        
+    except Exception as e:
+        st.error(f"❌ 조회 실패: {str(e)}")
