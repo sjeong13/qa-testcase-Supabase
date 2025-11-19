@@ -424,3 +424,75 @@ if st.button("🔍 벡터 검색 디버깅 (threshold=0)"):
     except Exception as e:
         st.error(f"❌ 검색 실패: {str(e)}")
         st.code(str(e))
+st.markdown("---")
+
+# ============================================
+# 10. 데이터 재저장
+# ============================================
+st.header("🔄 데이터 재저장")
+
+st.warning("⚠️ 기존 데이터를 삭제하고 올바른 벡터로 재저장합니다")
+
+if st.button("🗑️ 1단계: 기존 데이터 전체 삭제"):
+    try:
+        result = supabase.table('test_cases').select('id').execute()
+        
+        for item in result.data:
+            supabase.table('test_cases').delete().eq('id', item['id']).execute()
+        
+        st.success(f"✅ {len(result.data)}개 삭제 완료!")
+        
+    except Exception as e:
+        st.error(f"❌ 삭제 실패: {str(e)}")
+
+if st.button("💾 2단계: 테스트 그룹 재저장"):
+    try:
+        from supabase_helpers import save_test_case_to_supabase
+        
+        # 테스트 그룹
+        test_group = {
+            "group_id": "test_group_001",
+            "input_type": "table_group",
+            "name": "테스트 그룹 (3개)",
+            "table_data": [
+                {
+                    "NO": "1",
+                    "CATEGORY": "쿠폰",
+                    "DEPTH 1": "쿠폰 발행",
+                    "DEPTH 2": "지정 발행",
+                    "DEPTH 3": "",
+                    "PRE-CONDITION": "쿠폰 생성 완료",
+                    "STEP": "BO에서 쿠폰 지정 발행",
+                    "EXPECT RESULT": "회원에게 쿠폰 발급됨"
+                },
+                {
+                    "NO": "2",
+                    "CATEGORY": "쿠폰",
+                    "DEPTH 1": "쿠폰 사용",
+                    "DEPTH 2": "결제 시 사용",
+                    "DEPTH 3": "",
+                    "PRE-CONDITION": "쿠폰 발급 완료",
+                    "STEP": "FO에서 쿠폰 사용",
+                    "EXPECT RESULT": "할인 적용됨"
+                },
+                {
+                    "NO": "3",
+                    "CATEGORY": "쿠폰",
+                    "DEPTH 1": "쿠폰 삭제",
+                    "DEPTH 2": "관리자 삭제",
+                    "DEPTH 3": "",
+                    "PRE-CONDITION": "쿠폰 존재",
+                    "STEP": "BO에서 쿠폰 삭제",
+                    "EXPECT RESULT": "쿠폰 삭제됨"
+                }
+            ]
+        }
+        
+        with st.spinner("재저장 중..."):
+            count = save_test_case_to_supabase(test_group)
+        
+        st.success(f"✅ {count}개 재저장 완료!")
+        st.info("👉 '9️⃣ 디버깅'에서 다시 확인하세요")
+        
+    except Exception as e:
+        st.error(f"❌ 재저장 실패: {str(e)}")
