@@ -339,3 +339,88 @@ if st.button("📊 Supabase 전체 데이터 (상세)"):
         
     except Exception as e:
         st.error(f"❌ 조회 실패: {str(e)}")
+
+st.markdown("---")
+
+# ============================================
+# 9. 디버깅: 임베딩 확인
+# ============================================
+st.header("9️⃣ 🔧 디버깅: 임베딩 확인")
+
+if st.button("🔍 임베딩 NULL 체크"):
+    try:
+        # 임베딩이 NULL인 데이터 찾기
+        result = supabase.table('test_cases').select('id, name, embedding').execute()
+        
+        null_count = 0
+        ok_count = 0
+        
+        st.write(f"**총 {len(result.data)}개 검사:**")
+        
+        for row in result.data:
+            if row['embedding'] is None:
+                st.error(f"❌ ID {row['id']}: {row['name']} - 임베딩 NULL!")
+                null_count += 1
+            else:
+                st.success(f"✅ ID {row['id']}: {row['name']} - 임베딩 OK ({len(row['embedding'])}차원)")
+                ok_count += 1
+        
+        st.write("---")
+        st.metric("임베딩 OK", f"{ok_count}개")
+        st.metric("임베딩 NULL", f"{null_count}개")
+        
+    except Exception as e:
+        st.error(f"❌ 확인 실패: {str(e)}")
+
+st.markdown("---")
+
+if st.button("🔍 벡터 검색 디버깅 (threshold=0)"):
+    try:
+        # 1. 검색어 임베딩
+        search_query = "쿠폰 사용"
+        
+        with st.spinner("검색어 임베딩 생성 중..."):
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=search_query,
+                task_type="retrieval_query"
+            )
+            query_embedding = result['embedding']
+        
+        st.success(f"✅ 검색어 임베딩: {len(query_embedding)}차원")
+        
+        # 2. threshold=0으로 검색 (모든 결과)
+        with st.spinner("유사도 검색 중 (threshold=0)..."):
+            search_result = supabase.rpc(
+                'match_test_cases',
+                {
+                    'query_embedding': query_embedding,
+                    'match_count': 100,
+                    'similarity_threshold': 0.0  # ← 0으로!
+                }
+            ).execute()
+        
+        # 3. 결과 표시
+        if search_result.data:
+            st.success(f"✅ {len(search_result.data)}개 발견!")
+            
+            import pandas as pd
+            df_data = []
+            for item in search_result.data:
+                df_data.append({
+                    'id': item['id'],
+                    'name': item['name'],
+                    'category': item['category'],
+                    'similarity': f"{item['similarity']:.4f}"
+                })
+            
+            df = pd.DataFrame(df_data)
+            st.dataframe(df, use_container_width=True)
+            
+        else:
+            st.error("❌ threshold=0인데도 결과 없음!")
+            st.warning("→ RPC 함수 또는 임베딩에 문제가 있습니다.")
+            
+    except Exception as e:
+        st.error(f"❌ 검색 실패: {str(e)}")
+        st.code(str(e))
