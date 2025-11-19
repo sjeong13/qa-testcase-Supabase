@@ -126,7 +126,7 @@ def save_test_case_to_supabase(test_case):
                         "step": row.get('STEP', ''),
                         "expect_result": row.get('EXPECT RESULT', '')
                     },
-                    "embedding": embedding
+                    "embedding": str(embedding)
                 }).execute()
                 
                 saved_count += 1
@@ -157,7 +157,7 @@ def save_test_case_to_supabase(test_case):
                 "link": test_case.get('link', ''),
                 "description": test_case.get('description', ''),
                 "data": test_case,  # 전체 데이터
-                "embedding": embedding
+                "embedding": str(embedding)
             }).execute()
             
             return 1
@@ -359,7 +359,7 @@ def save_spec_doc_to_supabase(spec_doc):
             "doc_type": spec_doc.get('doc_type', ''),
             "link": spec_doc.get('link', ''),
             "content": spec_doc.get('content', ''),
-            "embedding": embedding
+            "embedding": str(embedding)
         }).execute()
         
         return True
