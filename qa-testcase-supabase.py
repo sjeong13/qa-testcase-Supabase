@@ -223,7 +223,7 @@ if page == "test_cases":
                             if st.button("💾 저장", key=f"save_group_edit_{tc['id']}", type="primary"):
                                 tc['table_data'] = edited_df.to_dict('records')
                                 tc['name'] = f"{'AI 생성' if tc.get('input_type') == 'ai_generated_group' else '입력'} 그룹 ({len(edited_df)}개)"
-                                save_test_cases_to_sheets(st.session_state.test_cases)
+                                # # save_test_cases_to_sheets(st.session_state.test_cases)  # 코드 삭제 예정  # 코드 삭제 예정
                                 st.session_state.editing_test_case_id = None
                                 st.success("✅ 저장되었습니다!")
                                 st.rerun()
@@ -261,7 +261,7 @@ if page == "test_cases":
                                     "expect_result": edit_expect
                                 }
                                 tc['description'] = f"NO: {edit_no}\nCATEGORY: {edit_category}\nDEPTH1: {edit_depth1}\nDEPTH2: {edit_depth2}\nDEPTH3: {edit_depth3}\nPRE-CONDITION: {edit_pre_condition}\nSTEP: {edit_step}\nEXPECT RESULT: {edit_expect}"
-                                save_test_cases_to_sheets(st.session_state.test_cases)
+                                # save_test_cases_to_sheets(st.session_state.test_cases)  # 코드 삭제 예정
                                 st.session_state.editing_test_case_id = None
                                 st.success("✅ 저장되었습니다!")
                                 st.rerun()
@@ -285,7 +285,7 @@ if page == "test_cases":
                                 tc['link'] = edit_link
                                 tc['description'] = edit_description
                                 
-                                save_test_cases_to_sheets(st.session_state.test_cases)
+                                # save_test_cases_to_sheets(st.session_state.test_cases)  # 코드 삭제 예정
                                 st.session_state.editing_test_case_id = None
                                 st.success("✅ 저장되었습니다!")
                                 st.rerun()
@@ -334,7 +334,7 @@ if page == "test_cases":
                     with col2:
                         if st.button("🗑️ 삭제", key=f"delete_tc_full_{tc['id']}"):
                             st.session_state.test_cases = [t for t in st.session_state.test_cases if t['id'] != tc['id']]
-                            save_test_cases_to_sheets(st.session_state.test_cases)
+                            # save_test_cases_to_sheets(st.session_state.test_cases)  # 코드 삭제 예정
                             st.success("✅ 삭제되었습니다!")
                             st.rerun()
     else:
@@ -371,7 +371,7 @@ elif page == "spec_docs":
                             doc['link'] = edit_link
                             doc['content'] = edit_content
                             
-                            save_spec_docs_to_sheets(st.session_state.spec_docs)
+                            # # save_spec_docs_to_sheets(st.session_state.spec_docs)  # 코드 삭제 예정  # 코드 삭제 예정
                             st.session_state.editing_spec_doc_id = None
                             st.success("✅ 저장되었습니다!")
                             st.rerun()
@@ -397,7 +397,7 @@ elif page == "spec_docs":
                     with col2:
                         if st.button("🗑️ 삭제", key=f"delete_spec_full_{doc['id']}"):
                             st.session_state.spec_docs = [d for d in st.session_state.spec_docs if d['id'] != doc['id']]
-                            save_spec_docs_to_sheets(st.session_state.spec_docs)
+                            # save_spec_docs_to_sheets(st.session_state.spec_docs)  # 코드 삭제 예정
                             st.success("✅ 삭제되었습니다!")
                             st.rerun()
     else:
@@ -649,39 +649,46 @@ else:
             # 테스트 케이스 요약
             st.subheader(f"📋 저장된 테스트 케이스")
 
-            # Supabase에서 실시간 개수 조회
+            # Supabase에서 실시간 조회
             supabase = get_supabase_client()
             if supabase:
                 try:
-                    result = supabase.table('test_cases').select('id', count='exact').execute()
-                    total_count = result.count if hasattr(result, 'count') else len(result.data)
+                    # 전체 개수
+                    result = supabase.table('test_cases').select('id, category, data').execute()
+                    total_count = len(result.data)
                     st.metric("Supabase 전체 케이스 수", f"{total_count}개")
+
+                    # 카테고리별 통계
+                    if total_count > 0:
+                        categories = {}
+                        for row in result.data:
+                            cat = row.get('category', '미분류')
+                            categories[cat] = categories.get(cat, 0) + 1
+
+                        with st.expander("📊 카테고리별 통계", expanded=False):
+                            for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+                                st.write(f"**{cat}**: {count}개")
+
+                    # 새 탭으로 열기 링크
+                    if total_count > 0:
+                        st.markdown(
+                            '<a href="?page=test_cases" target="_blank" style="text-decoration: none;">'
+                            '<button style="width: 100%; padding: 10px; background-color: #f0f2f6; border: 1px solid #d0d0d0; border-radius: 5px; cursor: pointer;">'
+                            '📝 전체 테스트 케이스 보기 (새 탭) →'
+                            '</button></a>',
+                            unsafe_allow_html=True
+                        )
+                except Exception as e:
+                    st.error(f"통계 조회 실패: {str(e)}")
+                    st.metric("전체 케이스 수", "조회 실패")
+            else:
+                st.warning("Supabase 연결 필요")
 
                 except:
                     st.metric("전체 케이스 수", "조회 실패")
 
             else:
                 st.warning("Supabase 연결 필요")
-
-            
-            if st.session_state.test_cases:
-                categories = {}
-                for tc in st.session_state.test_cases:
-                    cat = tc.get('category', '미분류')
-                    categories[cat] = categories.get(cat, 0) + 1
-                
-                with st.expander("📊 카테고리별 통계", expanded=False):
-                    for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
-                        st.write(f"**{cat}**: {count}개")
-                
-                # 새 탭으로 열기 링크
-                st.markdown(
-                    '<a href="?page=test_cases" target="_blank" style="text-decoration: none;">'
-                    '<button style="width: 100%; padding: 10px; background-color: #f0f2f6; border: 1px solid #d0d0d0; border-radius: 5px; cursor: pointer;">'
-                    '📝 전체 테스트 케이스 보기 (새 탭) →'
-                    '</button></a>',
-                    unsafe_allow_html=True
-                )
 
         
         # 개발자 도구
@@ -767,7 +774,33 @@ else:
             
             # 기획 문서 요약
             st.subheader(f"📄 저장된 기획 문서")
-            st.metric("전체 문서 수", f"{len(st.session_state.spec_docs)}개")
+
+            # Supabase에서 실시간 조회
+            supabase = get_supabase_client()
+            if supabase:
+                try:
+                    result = supabase.table('spec_docs').select('id, title, doc_type').execute()
+                    total_count = len(result.data)
+                    st.metric("전체 문서 수", f"{total_count}개")
+
+                    # 새 탭으로 열기 링크
+                    if total_count > 0:
+                        st.markdown(
+                            '<a href="?page=spec_docs" target="_blank" style="text-decoration: none;">'
+                            '<button style="width: 100%; padding: 10px; background-color: #f0f2f6; border: 1px solid #d0d0d0; border-radius: 5px; cursor: pointer;">'
+                            '📚 전체 기획 문서 보기 (새 탭) →'
+                            '</button></a>',
+                            unsafe_allow_html=True
+                        )
+                except Exception as e:
+                    st.error(f"문서 통계 조회 실패: {str(e)}")
+            else:
+                st.warning("Supabase 연결 필요")
+                    
+
+
+
+            
             
             # JSON 다운로드 버튼
             if st.session_state.spec_docs:
@@ -1020,8 +1053,6 @@ else:
                 # 학습 데이터로 저장 버튼
                 with col2:
                     if st.button("💾 학습시키기", type="primary", use_container_width=True):
-                        before_count = len(st.session_state.test_cases)
-                        
                         # AI가 생성한 테스트 케이스를 그룹으로 저장
                         group_id = f"ai_generated_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                         table_data = []
@@ -1040,26 +1071,25 @@ else:
                         
                         if table_data:
                             group_test = {
-                                "id": max([tc.get('id', 0) for tc in st.session_state.test_cases], default=0) + 1,
                                 "group_id": group_id,
                                 "input_type": "ai_generated_group",
                                 "category": "AI 생성",
                                 "name": f" ({len(table_data)}개)",
                                 # "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "table_data": table_data,
-                                "source": "AI_generated"
                             }
-                            st.session_state.test_cases.append(group_test)
-                            
-                            after_count = len(st.session_state.test_cases)
-                            save_result = save_test_cases_to_sheets(st.session_state.test_cases)
 
-                            if save_result:
-                                st.success(f"✅ {len(table_data)}개 저장 완료! (전: {before_count}개 → 후: {after_count}개)")
+                            with st.spinner("저장 중..."):
+                                saved_count = save_test_case_to_supabase(group_test)
+
+                            if saved_count > 0:
+                                st.success(f"✅ {saved_count}개 저장 완료!")
                                 del st.session_state.last_ai_response
                                 st.rerun()
                             else:
                                 st.error("❌ 저장 실패!")
+
+
 
             if ai_response.get("test_order"):
                 st.markdown("### 🔄 권장 테스트 순서")
