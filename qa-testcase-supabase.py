@@ -825,8 +825,20 @@ else:
     with col1:
         st.header("🔍 AI 기반 테스트 케이스 추천")
         
-        if len(st.session_state.test_cases) == 0 and len(st.session_state.spec_docs) == 0:
-            st.warning("⚠️ 먼저 테스트 케이스나 기획 문서를 추가해주세요.")
+        supabase = get_supabase_client()
+        if supabase:
+            try:
+                tc_count = len(supabase.table('test_cases').select('id').execute().data)
+                doc_count = len(supabase.table('spec_docs').select('id').execute().data)
+
+                if tc_count == 0 and doc_count == 0:
+                    st.warning("⚠️ 먼저 테스트 케이스나 기획 문서를 추가해주세요!")
+                    st.info("💡 왼쪽 사이드바에서 데이터를 추가할 수 있습니다.")
+                else:
+                    st.info(f"📊 현재 **{tc_count}개**의 테스트 케이스와 **{doc_count}개**의 기획 문서를 학습할 수 있습니다.")
+            except:
+                pass
+                
         else:
             search_query = st.text_area(
                 "테스트하고 싶은 기능을 입력하세요.\n설명을 상세하게 적을수록 AI는 더 정확한 케이스를 찾아서 추천해줍니다!",
@@ -837,32 +849,71 @@ else:
             
         if st.button("AI 추천 받기", type="primary"):
                 if search_query:
-                    with st.spinner("AI가 연관된 테스트 케이스를 찾고 있습니다..."):
+                    with st.spinner("AI가 유사한 테스트 케이스를 벡터 검색 중..."):
                         client = get_gemini_client()
                         
                         if client:
-                            # 연관성 높은 케이스 선택
-                            relevant_cases = get_relevant_test_cases(search_query, st.session_state.test_cases, max_cases=50)
-                            test_cases_str = json.dumps(relevant_cases, ensure_ascii=False, indent=2)
-                            
-                            # test_cases_str = json.dumps(st.session_state.test_cases, ensure_ascii=False, indent=2)
-                            
+                            # 벡터 유사도 검색
+                            try:
+                                # 1. Supabase에서 유사한 테스트 케이스 검색
+                                with st.spinner("벡터 유사도 계산 중..."):
+                                    relevant_cases = search_similar_test_cases(
+                                        query=search_query,
+                                        limit=50,
+                                        similarity_threshold=0.3  # 30% 이상 유사도
+                                    )
+                                if relevant_cases:
+                                    st.info(f"📊 {len(relevant_cases)}개의 유사한 테스트 케이스를 발견했습니다!")
+
+                                    # 유사도 정보 표시
+                                    with st.expander("🔍 검색된 케이스 미리보기", expanded=False):
+                                        for idx, tc in enumerate(relevant_cases[:5], 1):  # 상위 5개만
+                                            similarity = tc.get('similarity', 0)
+                                            st.write(f"{idx}. **{tc.get('name')}** (유사도: {similarity:.2%})")
+
+                                else:
+                                    st.warning("⚠️ 유사한 테스트 케이스를 찾지 못했습니다. 일반 케이스로 진행합니다.")
+                                    # 벡터 검색 실패 시 최신 50개
+                                    all_cases = load_test_cases_from_supabase(limit=50)
+                                    relevant_cases = all_cases
+
+                            # 2. 기획 문서도 벡터 검색
                             spec_docs_str = ""
-                            if st.session_state.spec_docs:
-                                spec_docs_str = "\n\n=== 기획 문서 ===\n"
-                                for doc in st.session_state.spec_docs:
-                                    spec_docs_str += f"\n[문서 제목: {doc['title']}]\n[문서 유형: {doc['doc_type']}]\n[내용]\n{doc['content']}\n\n---\n"
+                            spec_docs = search_similar_spec_docs(query=search_query, limit=10)
 
-                            # ✅ 토큰 체크
-                            estimated_tokens = len(test_cases_str + spec_docs_str) / 4
-                            if estimated_tokens > 500000:
-                                st.warning("⚠️ 데이터가 너무 많아 연관성 높은 데이터만 사용합니다.")
-                                relevant_cases = relevant_cases[:25]
-                                test_cases_str = json.dumps(relevant_cases, ensure_ascii=False, indent=2)
+                            if spec_docs:
+                                st.info(f"📚 {len(spec_docs)}개의 관련 기획 문서를 발견했습니다!")
+                                spec_docs_str = "\n\n=== 관련 기획 문서 ===\n"
+                                for doc in spec_docs:
+                                    spec_docs_str += f"\n[문서 제목: {doc['title']}]\n[문서 유형: {doc['doc_type']}]\n[유사도: {doc.get('similarity', 0):.2%}]\n[내용]\n{doc['content'][:500]}...\n\n---\n"
 
-                            st.info(f"📊 {len(relevant_cases)}개의 관련 테스트 케이스를 학습합니다.")
+                            # 3. AI 프롬프트용 데이터 준비
+                            test_cases_str = json.dumps(
+                                [
+                                    {
+                                        "category": tc.get("category"),
+                                        "name": tc.get("name"),
+                                        "description": tc.get("description"),
+                                        "data": tc.get("data"),
+                                        "similarity": tc.get("similarity")
+                                    }
+                                    for tc in relevant_cases
+                                ],
+                                ensure_ascii=False,
+                                indent=2
+                            )
                             
-                            prompt = f"""[역할 부여]
+                        except Exception as e:
+                            st.error(f"❌ 벡터 검색 실패: {str(e)}")
+                            st.warning("키워드 검색으로 전환합니다...")
+
+                            # Fallback: 최신 50개
+                            relevant_cases = load_test_cases_from_supabase(limit=50)
+                            test_cases_str = json.dumps(relevant_cases, ensure_ascii=False, indent=2)
+                            spec_docs_str = ""
+                        
+                        # 4. AI 프롬프트 (기존과 동일)
+                        prompt = f"""[역할 부여]
 너는 나와 같이 IT 노코드 웹 빌더 SaaS에 다니고 있는 꼼꼼한 QA 전문가, QA 엔지니어야.
 (1) 테스트 설계, 테스트 케이스 작성, 자동화 업무 수행
 (3) 서비스 안정성 기여. 리그레이션을 중심 업무 수행
@@ -927,58 +978,56 @@ else:
 중요: 
 1. 반드시 JSON 형식으로만 응답
 2. new_test_cases는 반드시 표 양식에 맞춰 작성
-3. 테스트 케이스와 기획 문서의 맥락을 충분히 반영할 것"""
+3. 벡터 검색으로 찾은 유사 케이스를 충분히 활용할 것
+"""
 
-                            try:
-                                response = client.generate_content(prompt)
-                                response_text = response.text
+                # 5. AI 응답 처리 (기존과 동일)
+                try:
+                    response = client.generate_content(prompt)
+                    response_text = response.text
                                 
-                                # 1. 마크다운 제거
-                                if "```json" in response_text:
-                                    json_str = response_text.split("```json")[1].split("```")[0].strip()
-                                else:
-                                    json_str = response_text.strip()
+                    # JSON 파싱
+                    if "```json" in response_text:
+                        json_str = response_text.split("```json")[1].split("```")[0].strip()
+                    else:
+                        json_str = response_text.strip()
 
-                                # 2. 제어 문자 사전 제거
-                                import re
-                                json_str_cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', json_str)
-                                
-                                # 3. JSON 파싱 시도
-                                try:
-                                    ai_response = json.loads(json_str_cleaned)
-                                except json.JSONDecodeError as e:
-                                    st.error(f"❌ JSON 파싱 오류: {str(e)}")
-            
-                                    # 디버깅용: 문제가 되는 부분 표시
-                                    with st.expander("🔧 디버깅 정보 (개발자용)", expanded=False):
-                                        st.write(f"**오류 위치:** line {e.lineno}, column {e.colno}")
-                                        st.write(f"**오류 메시지:** {e.msg}")
-                                        st.code(json_str_cleaned[:1000], language="json")
-            
-                                    # 4. 최종 fallback
-                                    try:
-                                        json_str_final = json_str_cleaned.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-                                        json_str_final = re.sub(r'\s+', ' ', json_str_final)
-                                        ai_response = json.loads(json_str_final)
-                                        st.warning("⚠️ JSON 파싱에 문제가 있어 일부 데이터가 손실되었을 수 있습니다.")
-                                    except:
-                                        st.error("❌ AI 응답을 처리할 수 없습니다. 다시 시도해주세요.")
-                                        st.stop()
-                                
-                                st.session_state.search_history.append({
-                                    "query": search_query,
-                                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                    "response": ai_response
-                                })
+                    import re
+                    json_str_cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', json_str)
 
-                                # ✅ ai_response를 세션에 저장
-                                st.session_state.last_ai_response = ai_response
-                                st.success("✅ AI 분석이 완료되었습니다!")
+                    try:
+                        ai_response = json.loads(json_str_cleaned)
+                    except json.JSONDecodeError as e:
+                        st.error(f"❌ JSON 파싱 오류: {str(e)}")
 
-                            except Exception as e:
-                                st.error(f"❌ AI 분석 중 오류가 발생했습니다: {str(e)}")
-                else:
-                    st.warning("검색어를 입력해주세요.")
+                        with st.expander("🔧 디버깅 정보 (개발자용)", expanded=False):
+                            st.write(f"**오류 위치:** line {e.lineno}, column {e.colno}")
+                            st.write(f"**오류 메시지:** {e.msg}")
+                            st.code(json_str_cleaned[:1000], language="json")
+
+                        try:
+                            json_str_final = json_str_cleaned.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+                            json_str_final = re.sub(r'\s+', ' ', json_str_final)
+                            ai_response = json.loads(json_str_final)
+                            st.warning("⚠️ JSON 파싱에 문제가 있어 일부 데이터가 손실되었을 수 있습니다.")
+                        except:
+                            st.error("❌ AI 응답을 처리할 수 없습니다. 다시 시도해주세요.")
+                            st.stop()
+
+                    st.session_state.search_history.append({
+                        "query": search_query,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "response": ai_response
+                    })
+
+                    st.session_state.last_ai_response = ai_response
+                    st.success("✅ AI 분석이 완료되었습니다!")
+
+                except Exception as e:
+                    st.error(f"❌ AI 분석 중 오류가 발생했습니다: {str(e)}")
+            else:
+                st.warning("검색어를 입력해주세요.")
+                    
 
         # ✅ 버튼 클릭 블록 밖에서 세션 체크
         if 'last_ai_response' in st.session_state:
