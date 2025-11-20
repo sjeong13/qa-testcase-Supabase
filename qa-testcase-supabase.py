@@ -683,14 +683,7 @@ else:
                     st.metric("전체 케이스 수", "조회 실패")
             else:
                 st.warning("Supabase 연결 필요")
-
-                except:
-                    st.metric("전체 케이스 수", "조회 실패")
-
-            else:
-                st.warning("Supabase 연결 필요")
-
-        
+       
         # 개발자 도구
         with tab1:
             st.markdown("---")
