@@ -164,25 +164,61 @@ if page == "test_cases":
     # 홈으로 돌아가기 링크
     st.markdown(f'<a href="/" target="_self">🏠 홈으로 돌아가기</a>', unsafe_allow_html=True)
     st.markdown("---")
-    
-    if st.session_state.test_cases:
-        # 카테고리별 통계
-        categories = {}
-        for tc in st.session_state.test_cases:
-            cat = tc.get('category', '미분류')
-            categories[cat] = categories.get(cat, 0) + 1
-        
-        st.metric("전체 케이스 수", f"{len(st.session_state.test_cases)}개")
-        
-        # 카테고리별 통계
-        with st.expander("📊 카테고리별 통계", expanded=False):
-            for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
-                st.write(f"**{cat}**: {count}개")
 
-        st.markdown("---")
+    # Supabase에서 직접 로드
+    supabase = get_supabase_client()
+    if supabase:
+        try:
+            # 전체 데이터 조회
+            result = supabase.table('test_cases').select('*').order('id', desc=True).execute()
+
+            if result.data:
+                # 카테고리별 통계
+                categories = {}
+                for tc in st.session_state.test_cases:
+                    cat = tc.get('category', '미분류')
+                    categories[cat] = categories.get(cat, 0) + 1
         
-        # 전체 테스트 케이스 표시
-        for tc in st.session_state.test_cases:
+                st.metric("전체 케이스 수", f"{len(st.session_state.test_cases)}개")
+        
+                with st.expander("📊 카테고리별 통계", expanded=False):
+                    for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+                        st.write(f"**{cat}**: {count}개")
+
+                st.markdown("---")
+        
+                # 전체 테스트 케이스 표시
+                for row in result.data:
+                    tc_data = row['data']  # JSONB에서 원본 데이터
+
+                with st.expander(f"[{row['category']}] {row['name']}", expanded=False):
+                    st.write(f"**카테고리:** {row['category']}")
+                    st.write(f"**이름:** {row['name']}")
+                    if row.get('description'):
+                        st.write(f"**설명:** {row['description']}")
+                    if row.get('link'):
+                        st.write(f"**링크:** {row['link']}")
+
+                    # data 컬럼 표시
+                    if tc_data:
+                        with st.expander("📋 상세 데이터", expanded=False):
+                            st.json(tc_data)
+
+                    # 삭제 버튼
+                    if st.button("🗑️ 삭제", key=f"delete_{row['id']}"):
+                        success = delete_test_case_from_supabase(row['id'])
+                        if success:
+                            st.success("✅ 삭제되었습니다!")
+                            st.rerun()
+
+            else:
+                st.info("아직 저장된 테스트 케이스가 없습니다.")
+
+        except Exception as e:
+            st.error(f"❌ 조회 실패: {str(e)}")
+    else:
+        st.error("❌ Supabase 연결 실패")
+        
             # 입력 방식 배지 설정
             if tc.get('input_type') == 'table_group':
                 input_type_badge = "🔹"
@@ -824,7 +860,8 @@ else:
 
     with col1:
         st.header("🔍 AI 기반 테스트 케이스 추천")
-        
+
+        # 데이터 개수 체크
         supabase = get_supabase_client()
         if supabase:
             try:
@@ -839,13 +876,12 @@ else:
             except:
                 pass
                 
-        else:
-            search_query = st.text_area(
-                "테스트하고 싶은 기능을 입력하세요.\n설명을 상세하게 적을수록 AI는 더 정확한 케이스를 찾아서 추천해줍니다!",
-                placeholder="예: 상품별 구매평 연동 기능 QA\nBO 쇼핑 > 구매평 > 구매평 연동에 해당 기능이 추가될 예정\n테스트 케이스 30개 이상 만들어봐",
-                height=150,
-                key="search_input"
-            )
+        search_query = st.text_area(
+            "테스트하고 싶은 기능을 입력하세요.\n설명을 상세하게 적을수록 AI는 더 정확한 케이스를 찾아서 추천해줍니다!",
+            placeholder="예: 상품별 구매평 연동 기능 QA\nBO 쇼핑 > 구매평 > 구매평 연동에 해당 기능이 추가될 예정\n테스트 케이스 30개 이상 만들어봐",
+            height=150,
+            key="search_input"
+        )
             
         if st.button("AI 추천 받기", type="primary"):
                 if search_query:
@@ -862,6 +898,7 @@ else:
                                         limit=50,
                                         similarity_threshold=0.3  # 30% 이상 유사도
                                     )
+                                    
                                 if relevant_cases:
                                     st.info(f"📊 {len(relevant_cases)}개의 유사한 테스트 케이스를 발견했습니다!")
 
