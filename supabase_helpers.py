@@ -259,13 +259,13 @@ def load_test_cases_from_supabase(limit=None, group_by_id=False):
 # 5. 벡터 유사도 검색
 # =============================================
 
-def search_similar_test_cases(query, limit=50, similarity_threshold=0.5):
+def search_similar_test_cases(query, limit=50, similarity_threshold=0.3):
     """
     벡터 유사도 기반 검색
     
     Args:
         query (str): 검색어
-        limit (int): 최대 결과 수
+        limit (int): 반환할 최대 결과 수. 100 이상은 검토 필요(Gemini API 호출 시간, API 비용 증가. 노이즈 많음)
         similarity_threshold (float): 최소 유사도 (0~1)
     
     Returns:
@@ -382,7 +382,7 @@ def load_spec_docs_from_supabase():
         st.error(f"기획 문서 불러오기 실패: {str(e)}")
         return []
 
-def search_similar_spec_docs(query, limit=10, similarity_threshold=0.3):  # ← 파라미터 추가
+def search_similar_spec_docs(query, limit=10, similarity_threshold=0.3):
     """기획 문서 벡터 검색"""
     try:
         supabase = get_supabase_client()
@@ -402,7 +402,7 @@ def search_similar_spec_docs(query, limit=10, similarity_threshold=0.3):  # ← 
             {
                 'query_embedding': query_embedding,
                 'match_count': limit,
-                'similarity_threshold': similarity_threshold  # ← 파라미터 사용
+                'similarity_threshold': similarity_threshold
             }
         ).execute()
         
