@@ -860,10 +860,6 @@ else:
                                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "response": ai_response
                             })
-                            
-
-                            progress_bar.progress(100, text="완료!")
-                            progress_bar.empty()  # 프로그레스 바 제거
 
                             st.session_state.last_ai_response = ai_response
                             st.success("✅ AI 분석이 완료되었습니다!")
