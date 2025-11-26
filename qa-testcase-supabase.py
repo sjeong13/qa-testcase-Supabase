@@ -721,6 +721,7 @@ else:
                             test_cases_str = json.dumps(
                                 [
                                     {
+                                        "id": tc.get("id"),
                                         "category": tc.get("category"),
                                         "name": tc.get("name"),
                                         "description": tc.get("description"),
@@ -777,6 +778,7 @@ else:
 3. 그 기능이 작동하기 위해 **의존하는 다른 기능**들을 추론할 것
 4. 논리적인 순서로 테스트 체크리스트를 만들 것
 5. **반드시 위 표 양식으로 신규 테스트 케이스들을 생성할 것. NO 1부터 번호 시작**
+6. **existing_test_cases의 id는 반드시 숫자여야 함. 학습 데이터의 id 필드를 참조할 것**
 
 응답 형식:
 ```json
@@ -784,7 +786,7 @@ else:
   "reasoning": "왜 이런 테스트 케이스들이 필요한지 단계별 추론 과정 (한국어로 설명)",
   "existing_test_cases": [
     {{
-      "id": 테스트케이스ID,
+      "id": 테스트케이스 숫자 ID (예: 1, 2, 3),
       "reason": "이 기존 테스트가 왜 필요한지 간단한 설명"
     }}
   ],
@@ -976,7 +978,24 @@ else:
                     for i, rec in enumerate(ai_response.get("existing_test_cases", []), 1):
                         # test_case = next((tc for tc in st.session_state.test_cases if tc["id"] == rec["id"]), None)
                         # relevant_cases에서 찾기 (session_state 대체)
-                        test_case = next((tc for tc in relevant_cases if tc.get("id") == rec.get("id")), None)
+                        # test_case = next((tc for tc in relevant_cases if tc.get("id") == rec.get("id")), None)
+
+                        # id로 먼저 매칭 시도 (숫자 ID)
+                        rec_id = rec.get("id")
+                        test_case = None
+
+                        # Case 1: rec_id가 숫자(정상)인 경우
+                        if isinstance(rec_id, int):
+                            test_case = next((tc for tc in relevant_cases if tc.get("id") == rec_id), None)
+
+                        # Case 2: rec_id가 문자열(AI가 name을 반환)인 경우
+                        if not test_case and isinstance(rec_id, str):
+                            test_case = next((tc for tc in relevant_cases if tc.get("name") == rec_id), None)
+
+                        # Case 3: 여전히 못 찾으면 name으로 시도
+                        if not test_case:
+                            test_case = next((tc for tc in relevant_cases if tc.get("name") and rec_id and tc.get("name") in str(rec_id)), None)
+                        
                         
                         if test_case:
                             with st.expander(f"✓ {i}. [{test_case.get('category', '미분류')}] {test_case.get('name', '제목 없음')}", expanded=False):
