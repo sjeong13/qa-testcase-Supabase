@@ -297,9 +297,16 @@ def search_similar_test_cases(query, limit=50, similarity_threshold=0.3):
         # 3. 결과 파싱
         test_cases = []
         for row in result.data:
-            tc = row['data']  # JSONB 데이터
+            # tc = row['data']  # JSONB 데이터
+            tc = row['data'].copy() if row.get('data') else {}  # JSONB 데이터 복사
             tc['id'] = row['id']
+            tc['category'] = row.get('category', '')
+            tc['name'] = row.get('name', '')
+            tc['link'] = row.get('link', '')
+            tc['description'] = row.get('description', '')
             tc['similarity'] = row['similarity']  # 유사도 추가!
+            # tc['similarity'] = row.get('similarity', 0)
+            
             test_cases.append(tc)
         
         return test_cases
