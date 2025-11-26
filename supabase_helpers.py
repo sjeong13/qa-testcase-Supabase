@@ -382,7 +382,7 @@ def load_spec_docs_from_supabase():
         st.error(f"기획 문서 불러오기 실패: {str(e)}")
         return []
 
-def search_similar_spec_docs(query, limit=10):
+def search_similar_spec_docs(query, limit=10, similarity_threshold=0.3):  # ← 파라미터 추가
     """기획 문서 벡터 검색"""
     try:
         supabase = get_supabase_client()
@@ -402,7 +402,7 @@ def search_similar_spec_docs(query, limit=10):
             {
                 'query_embedding': query_embedding,
                 'match_count': limit,
-                'similarity_threshold': 0.5
+                'similarity_threshold': similarity_threshold  # ← 파라미터 사용
             }
         ).execute()
         
