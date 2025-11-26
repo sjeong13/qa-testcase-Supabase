@@ -691,6 +691,9 @@ else:
                                     limit=50,
                                     similarity_threshold=0.3  # 30% 이상 유사도
                                 )
+
+                                # 세션 스테이트에 저장
+                                st.session_state.relevant_cases = relevant_cases
                                 
                             if relevant_cases:
                                 st.info(f"📊 {len(relevant_cases)}개의 유사한 테스트 케이스를 발견했습니다!")
@@ -706,6 +709,9 @@ else:
                                 # 벡터 검색 실패 시 최신 50개
                                 all_cases = load_test_cases_from_supabase(limit=50)
                                 relevant_cases = all_cases
+                                
+                                # 세션 스테이트에 저장
+                                st.session_state.relevant_cases = all_cases
 
                             # 2. 기획 문서도 벡터 검색
                             spec_docs_str = ""
@@ -742,6 +748,9 @@ else:
                             relevant_cases = load_test_cases_from_supabase(limit=50)
                             test_cases_str = json.dumps(relevant_cases, ensure_ascii=False, indent=2)
                             spec_docs_str = ""
+
+                            # 세션 스테이트에 저장
+                            st.session_state.relevant_cases = relevant_cases
                         
                         # 4. AI 프롬프트 (기존과 동일)
                         prompt = f"""[역할 부여]
@@ -972,52 +981,59 @@ else:
 
             if ai_response.get("existing_test_cases"):
                 st.markdown("### 📝 기존 테스트 케이스 활용")
-                
-                # 최초 접힘 상태로 변경
-                with st.expander("기존 테스트 케이스 목록", expanded=False):
-                    for i, rec in enumerate(ai_response.get("existing_test_cases", []), 1):
-                        # test_case = next((tc for tc in st.session_state.test_cases if tc["id"] == rec["id"]), None)
-                        # relevant_cases에서 찾기 (session_state 대체)
-                        # test_case = next((tc for tc in relevant_cases if tc.get("id") == rec.get("id")), None)
 
-                        # id로 먼저 매칭 시도 (숫자 ID)
-                        rec_id = rec.get("id")
-                        test_case = None
+                # 세션 스테이트에서 relevant_cases 가져오기
+                relevant_cases = st.session_state.get('relevant_cases', [])
 
-                        # Case 1: rec_id가 숫자(정상)인 경우
-                        if isinstance(rec_id, int):
-                            test_case = next((tc for tc in relevant_cases if tc.get("id") == rec_id), None)
+                # relevant_cases가 없으면 경고 표시
+                if not relevant_cases:
+                    st.warning("⚠️ 검색 결과를 찾을 수 없습니다. 다시 검색해주세요.")
+                else:
+                    # 최초 접힘 상태로 변경
+                    with st.expander("기존 테스트 케이스 목록", expanded=False):
+                        for i, rec in enumerate(ai_response.get("existing_test_cases", []), 1):
+                            # test_case = next((tc for tc in st.session_state.test_cases if tc["id"] == rec["id"]), None)
+                            # relevant_cases에서 찾기 (session_state 대체)
+                            # test_case = next((tc for tc in relevant_cases if tc.get("id") == rec.get("id")), None)
 
-                        # Case 2: rec_id가 문자열(AI가 name을 반환)인 경우
-                        if not test_case and isinstance(rec_id, str):
-                            test_case = next((tc for tc in relevant_cases if tc.get("name") == rec_id), None)
+                            # id로 먼저 매칭 시도 (숫자 ID)
+                            rec_id = rec.get("id")
+                            test_case = None
 
-                        # Case 3: 여전히 못 찾으면 name으로 시도
-                        if not test_case:
-                            test_case = next((tc for tc in relevant_cases if tc.get("name") and rec_id and tc.get("name") in str(rec_id)), None)
+                            # Case 1: rec_id가 숫자(정상)인 경우
+                            if isinstance(rec_id, int):
+                                test_case = next((tc for tc in relevant_cases if tc.get("id") == rec_id), None)
+
+                            # Case 2: rec_id가 문자열(AI가 name을 반환)인 경우
+                            if not test_case and isinstance(rec_id, str):
+                                test_case = next((tc for tc in relevant_cases if tc.get("name") == rec_id), None)
+
+                            # Case 3: 여전히 못 찾으면 name으로 시도
+                            if not test_case:
+                                test_case = next((tc for tc in relevant_cases if tc.get("name") and rec_id and tc.get("name") in str(rec_id)), None)
                         
                         
-                        if test_case:
-                            with st.expander(f"✓ {i}. [{test_case.get('category', '미분류')}] {test_case.get('name', '제목 없음')}", expanded=False):
-                                st.markdown(f"**왜 필요한가?** {rec.get('reason', '')}")
+                            if test_case:
+                                with st.expander(f"✓ {i}. [{test_case.get('category', '미분류')}] {test_case.get('name', '제목 없음')}", expanded=False):
+                                    st.markdown(f"**왜 필요한가?** {rec.get('reason', '')}")
 
-                                # table_data가 있으면 표시
-                                if test_case.get('table_data'):
-                                    st.markdown("**테스트 케이스 표:**")
-                                    df_tc = pd.DataFrame([{
-                                        'NO': item.get('NO', ''),
-                                        'CATEGORY': item.get('CATEGORY', ''),
-                                        'DEPTH 1': item.get('DEPTH 1', ''),
-                                        'DEPTH 2': item.get('DEPTH 2', ''),
-                                        'DEPTH 3': item.get('DEPTH 3', ''),
-                                        'STEP': item.get('STEP', ''),
-                                        'EXPECT RESULT': item.get('EXPECT RESULT', '')
-                                    } for item in [test_case.get('table_data')] if isinstance(test_case.get('table_data'), dict)])
-                                    st.dataframe(df_tc, use_container_width=True, hide_index=True)
-                                else:
-                                    st.markdown(f"**설명:** {test_case.get('description', '')}")
-                        else:
-                            st.warning(f"⚠️ 케이스 ID {rec.get('id')}를 찾을 수 없습니다.")
+                                    # table_data가 있으면 표시
+                                    if test_case.get('table_data'):
+                                        st.markdown("**테스트 케이스 표:**")
+                                        df_tc = pd.DataFrame([{
+                                            'NO': item.get('NO', ''),
+                                            'CATEGORY': item.get('CATEGORY', ''),
+                                            'DEPTH 1': item.get('DEPTH 1', ''),
+                                            'DEPTH 2': item.get('DEPTH 2', ''),
+                                            'DEPTH 3': item.get('DEPTH 3', ''),
+                                            'STEP': item.get('STEP', ''),
+                                            'EXPECT RESULT': item.get('EXPECT RESULT', '')
+                                        } for item in [test_case.get('table_data')] if isinstance(test_case.get('table_data'), dict)])
+                                        st.dataframe(df_tc, use_container_width=True, hide_index=True)
+                                    else:
+                                        st.markdown(f"**설명:** {test_case.get('description', '')}")
+                            else:
+                                st.warning(f"⚠️ 케이스 ID {rec.get('id')}를 찾을 수 없습니다.")
 
 
     with col2:
