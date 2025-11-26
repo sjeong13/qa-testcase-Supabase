@@ -822,10 +822,21 @@ else:
 3. 벡터 검색으로 찾은 유사 케이스를 충분히 활용할 것
 """
 
-                        # 5. AI 응답 처리 (기존과 동일)
+                        # 5. AI 응답 처리
                         try:
                             response = client.generate_content(prompt)
                             response_text = response.text
+
+                            progress_bar = st.progress(0, text="AI가 분석 중...")
+
+                            # 프롬프트 전송
+                            progress_bar.progress(20, text="프롬프트 전송 중...")
+                            response = client.generate_content(prompt)
+
+                            progress_bar.progress(60, text="응답 처리 중...")
+                            response_text = response.text
+
+                            progress_bar.progress(80, text="JSON 파싱 중...")
                                         
                             # JSON 파싱
                             if "```json" in response_text:
@@ -860,6 +871,10 @@ else:
                                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "response": ai_response
                             })
+                            
+
+                            progress_bar.progress(100, text="완료!")
+                            progress_bar.empty()  # 프로그레스 바 제거
 
                             st.session_state.last_ai_response = ai_response
                             st.success("✅ AI 분석이 완료되었습니다!")
