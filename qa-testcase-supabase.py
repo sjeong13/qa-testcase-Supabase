@@ -485,7 +485,10 @@ else:
                             st.warning("컬럼명이 일치하지 않습니다. 데이터를 확인해주세요.")
                             st.dataframe(df.head())
                         else:
-                            st.session_state.edit_df = df[required_columns].fillna('')
+                            # st.session_state.edit_df = df[required_columns].fillna('')
+                            
+                            # 모든 컬럼을 문자열로 변환 후 빈 값 처리
+                            st.session_state.edit_df = df[required_columns].astype(str).replace('nan', '').replace('None', '')
                             st.success(f"✅ {len(df)}개 행이 로드되었습니다!")
                             st.info("👆 위의 표를 확인하고 '💾 표 형식 저장' 버튼을 눌러주세요.")
                             
