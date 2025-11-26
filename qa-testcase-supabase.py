@@ -974,16 +974,32 @@ else:
                 # 최초 접힘 상태로 변경
                 with st.expander("기존 테스트 케이스 목록", expanded=False):
                     for i, rec in enumerate(ai_response.get("existing_test_cases", []), 1):
-                        test_case = next((tc for tc in st.session_state.test_cases if tc["id"] == rec["id"]), None)
+                        # test_case = next((tc for tc in st.session_state.test_cases if tc["id"] == rec["id"]), None)
+                        # relevant_cases에서 찾기 (session_state 대체)
+                        test_case = next((tc for tc in relevant_cases if tc.get("id") == rec.get("id")), None)
                         
                         if test_case:
                             with st.expander(f"✓ {i}. [{test_case.get('category', '미분류')}] {test_case.get('name', '제목 없음')}", expanded=False):
                                 st.markdown(f"**왜 필요한가?** {rec.get('reason', '')}")
-                                if 'table_data' in test_case:
+
+                                # table_data가 있으면 표시
+                                if test_case.get('table_data'):
                                     st.markdown("**테스트 케이스 표:**")
-                                    st.dataframe(pd.DataFrame(test_case['table_data']), use_container_width=True, hide_index=True)
+                                    df_tc = pd.DataFrame([{
+                                        'NO': item.get('NO', ''),
+                                        'CATEGORY': item.get('CATEGORY', ''),
+                                        'DEPTH 1': item.get('DEPTH 1', ''),
+                                        'DEPTH 2': item.get('DEPTH 2', ''),
+                                        'DEPTH 3': item.get('DEPTH 3', ''),
+                                        'STEP': item.get('STEP', ''),
+                                        'EXPECT RESULT': item.get('EXPECT RESULT', '')
+                                    } for item in [test_case.get('table_data')] if isinstance(test_case.get('table_data'), dict)])
+                                    st.dataframe(df_tc, use_container_width=True, hide_index=True)
                                 else:
                                     st.markdown(f"**설명:** {test_case.get('description', '')}")
+                        else:
+                            st.warning(f"⚠️ 케이스 ID {rec.get('id')}를 찾을 수 없습니다.")
+
 
     with col2:
         st.header("📊 검색 히스토리")
