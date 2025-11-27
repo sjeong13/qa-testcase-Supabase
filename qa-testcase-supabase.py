@@ -8,6 +8,8 @@
 #2025-11-17 : Google Sheets 연동 추가 - 데이터 영구 저장, 연관성 기반 필터링 함수 추가(결국 학습 데이터가 많아서 타임아웃 걸림...)
 #2025-11-19 : Supabase + 벡터 검색 전환
 #2025-11-26 : ver.1 완성 *표 그룹 쪼개서 생성 및 저장되는 버전
+#2025-11-27 : 버그/개선 수정
+# ㄴ 비밀번호 입력 후 Enter 키 동작 오류, 기획 문서 삭제 버튼 오류, 줄글 형식/파일 업로드 저장 후 데이터 초기화 개선, [수정] 버튼 추가
 
 # =====================================================================================
 
@@ -127,16 +129,20 @@ if not st.session_state.authenticated:
     
     with col2:
         st.info("💡 비밀번호를 입력하세요.")
+
+        # 비밀번호 입력 후 Enter 키 동작
+        with st.form(key="login_form"):
+            password = st.text_input(
+                "비밀번호",
+                type="password",
+                placeholder="비밀번호를 입력하세요"
+            )
         
-        password = st.text_input(
-            "비밀번호",
-            type="password",
-            placeholder="비밀번호를 입력하세요"
-        )
-        
-        col_a, col_b, col_c = st.columns([1, 1, 1])
-        with col_b:
-            if st.button("🔓 로그인", type="primary", use_container_width=True):
+            col_a, col_b, col_c = st.columns([1, 1, 1])
+            with col_b:
+                submit_button = st.form_submit_button("🔓 로그인", type="primary", use_container_width=True)
+
+            if submit_button:
                 correct_password = os.environ.get("APP_PASSWORD", "qabot2025")
                 
                 if password == correct_password:
