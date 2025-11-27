@@ -243,25 +243,72 @@ elif page == "spec_docs":
                 # 전체 기획 문서 표시
                 for row in result.data:
                     with st.expander(f"[{row.get('doc_type', '기타')}] {row.get('title', '제목 없음')}", expanded=False):
-                        st.write(f"**문서 유형:** {row.get('doc_type', '기타')}")
-                        st.write(f"**링크:** {row.get('link', '')}")
-                        st.write(f"**내용:**")
-                        st.text(row.get('content', ''))
 
-                        # 삭제 버튼
-                        if st.button("🗑️ 삭제", key=f"delete_spec_{row['id']}"):
-                            success = delete_test_case_from_supabase(row['id'])  # 같은 함수 사용 가능
-                            if success:
-                                st.success("✅ 삭제되었습니다!")
-                                st.rerun()
+                        is_editing = st.session_state.editing_spec_doc_id == row['id']
 
-            else:
-                st.info("아직 저장된 기획 문서가 없습니다.")
+                        if is_editing:
+                            edited_title = st.text_input("문서 제목", value=row.get('title', ''), key=f"edit_spec_title_{row['id']}")
+                            edited_type = st.selectbox("문서 유형", ["Notion", "Jira", "기타"], 
+                                                       index=["Notion", "Jira", "기타"].index(row.get('doc_type', '기타')),
+                                                       key=f"edit_spec_type_{row['id']}")
+                            edited_link = st.text_input("링크", value=row.get('link', ''), key=f"edit_spec_link_{row['id']}")
+                            edited_content = st.text_area("내용", value=row.get('content', ''), height=300, key=f"edit_spec_content_{row['id']}")
 
-        except Exception as e:
-            st.error(f"❌ 조회 실패: {str(e)}")
-    else:
-        st.error("❌ Supabase 연결 실패")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("💾 저장", key=f"save_spec_{row['id']}", use_container_width=True):
+                                    try:
+                                        supabase.table('spec_docs').update({
+                                            'title': edited_title,
+                                            'doc_type': edited_type,
+                                            'link': edited_link,
+                                            'content': edited_content
+                                        }).eq('id', row['id']).execute()
+
+                                        st.session_state.editing_spec_doc_id = None
+                                        st.success("✅ 수정되었습니다!")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ 수정 실패: {str(e)}")
+
+                            with col2:
+                                if st.button("❌ 취소", key=f"cancel_spec_{row['id']}", use_container_width=True):
+                                    st.session_state.editing_spec_doc_id = None
+                                    st.rerun()
+
+                        else:
+                            st.write(f"**문서 유형:** {row.get('doc_type', '기타')}")
+                            st.write(f"**링크:** {row.get('link', '')}")
+                            st.write(f"**내용:**")
+                            st.text(row.get('content', ''))
+
+
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                # 수정 버튼
+                                if st.button("✏️ 수정", key=f"edit_spec_{row['id']}", use_container_width=True):
+                                    st.session_state.editing_spec_doc_id = row['id']
+                                    st.rerun()
+
+                            with col2:
+                                # 삭제 버튼
+                                if st.button("🗑️ 삭제", key=f"delete_spec_{row['id']}", use_container_width=True):
+                                    try:
+                                        supabase.table('spec_docs').delete().eq('id', row['id']).execute()
+                                        st.success("✅ 삭제되었습니다!")
+                                        st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ 삭제 실패: {str(e)}")
+
+                else:
+                    st.info("아직 저장된 기획 문서가 없습니다.")
+                    
+            except Exception as e:
+                st.error(f"❌ 조회 실패: {str(e)}")
+
+        else:
+            st.error("❌ Supabase 연결 실패")
+
 
 # 메인 페이지
 else:
