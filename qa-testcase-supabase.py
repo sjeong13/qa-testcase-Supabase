@@ -303,11 +303,11 @@ elif page == "spec_docs":
                 else:
                     st.info("아직 저장된 기획 문서가 없습니다.")
                     
-            except Exception as e:
-                st.error(f"❌ 조회 실패: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ 조회 실패: {str(e)}")
 
-        else:
-            st.error("❌ Supabase 연결 실패")
+    else:
+        st.error("❌ Supabase 연결 실패")
 
 
 # 메인 페이지
