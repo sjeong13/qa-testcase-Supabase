@@ -297,8 +297,8 @@ elif page == "spec_docs":
                                         supabase.table('spec_docs').delete().eq('id', row['id']).execute()
                                         st.success("✅ 삭제되었습니다!")
                                         st.rerun()
-                                        except Exception as e:
-                                            st.error(f"❌ 삭제 실패: {str(e)}")
+                                    except Exception as e:
+                                        st.error(f"❌ 삭제 실패: {str(e)}")
 
                 else:
                     st.info("아직 저장된 기획 문서가 없습니다.")
