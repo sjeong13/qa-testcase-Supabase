@@ -515,27 +515,45 @@ else:
                 # ========== 방법 2: 줄글 형식 (자유 입력) ==========
                 st.markdown("**방법 2: 줄글 형식 (자유 입력)**")
                 st.info("💡 테스트 케이스를 자유롭게 작성하고 AI가 학습할 수 있도록 저장하세요!")
+
+                # 세션 스테이트 초기값 설정
+                if 'tab1_tc_free_title' not in st.session_state:
+                    st.session_state.tab1_tc_free_title = ""
+                if 'tab1_tc_free_link' not in st.session_state:
+                    st.session_state.tab1_tc_free_link = ""
+                if 'tab1_tc_free_content' not in st.session_state:
+                    st.session_state.tab1_tc_free_content = ""
+                if 'tab1_tc_free_category' not in st.session_state:
+                    st.session_state.tab1_tc_free_category = ""
+
+                # 초기화 플래그 체크 (이전 저장 후 rerun되면 초기화)
+                if st.session_state.get('tab1_tc_reset_flag', False):
+                    st.session_state.tab1_tc_free_title = ""
+                    st.session_state.tab1_tc_free_link = ""
+                    st.session_state.tab1_tc_free_content = ""
+                    st.session_state.tab1_tc_free_category = ""
+                    st.session_state.tab1_tc_reset_flag = False
                 
-                tc_free_title = st.text_input(
+                st.text_input(
                     "제목 *",
                     placeholder="예: 쿠폰 지정 발행 테스트 설계",
                     key="tab1_tc_free_title"
                 )
 
-                tc_free_link = st.text_input(
+                st.text_input(
                     "링크 URL",
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab1_tc_free_link"
                 )
                 
-                tc_free_content = st.text_area(
+                st.text_area(
                     "내용 *",
                     placeholder="테스트 설계 내용을 자유롭게 작성하세요.\n\n[예시]\n1. BO에서 쿠폰 생성\n2. 특정 회원에게 쿠폰 지정 발행\n3. FO에서 쿠폰 사용 가능 여부 확인\n...",
                     height=300,
                     key="tab1_tc_free_content"
                 )
                 
-                tc_free_category = st.text_input(
+                st.text_input(
                     "카테고리 *",
                     placeholder="쿠폰",
                     key="tab1_tc_free_category"
@@ -543,27 +561,26 @@ else:
                 
                 # 저장 버튼 및 로직
                 if st.button("💾 줄글 형식 저장", type="primary", key="tab1_save_free_form_tc"):
-                    if not tc_free_title or not tc_free_content or not tc_free_category:
+                    # 세션 스테이트에서 직접 값 가져오기
+                    if not st.session_state.tab1_tc_free_title or not st.session_state.tab1_tc_free_content or not st.session_state.tab1_tc_free_category:
                         st.warning("⚠️ 모든 항목을 입력해주세요!")
                     else:
                         # 줄글 형식으로 저장
                         free_form_test = {
-                            "category": tc_free_category if tc_free_category else "기타",
-                            "name": tc_free_title,
-                            "link": tc_free_link,
-                            "description": tc_free_content,
+                            "category": st.session_state.tab1_tc_free_category if st.session_state.tab1_tc_free_category else "기타",
+                            "name": st.session_state.tab1_tc_free_title,
+                            "link": st.session_state.tab1_tc_free_link,
+                            "description": st.session_state.tab1_tc_free_content,
                             "input_type": "free_form"
                         }
                         with st.spinner("저장 중..."):
                             saved_count = save_test_case_to_supabase(free_form_test)
 
                         if saved_count > 0:
-                             # 세션 스테이트 초기화 (입력값 리셋)
-                            for key in ['tab1_tc_free_title', 'tab1_tc_free_link', 'tab1_tc_free_content', 'tab1_tc_free_category']:
-                                if key in st.session_state:
-                                    del st.session_state[key]
+                            # 초기화 플래그 설정 후 rerun
+                            st.session_state.tab1_tc_reset_flag = True
                                     
-                            st.success(f"✅ '{tc_free_title}' 테스트 케이스가 Supabase에 저장되었습니다!")
+                            st.success(f"✅ '{free_form_test['name']}' 테스트 케이스가 Supabase에 저장되었습니다!")
                             st.rerun()
                         else:
                             st.error("❌ 저장 실패!")
@@ -665,30 +682,48 @@ else:
             with st.expander("➕ [QA팀 전용 버튼]\n기획 문서 추가", expanded=False):
                 st.markdown("### 📄 기획 문서 입력")
                 st.info("💡 노션, Jira에서 작성한 문서를 복사해서 붙여넣으세요.\nAI가 이 내용을 학습합니다!")
-                
+
+                # 세션 스테이트 초기값 설정
+                if 'tab2_spec_title' not in st.session_state:
+                    st.session_state.tab2_spec_title = ""
+                if 'tab2_spec_type' not in st.session_state:
+                    st.session_state.tab2_spec_type = "Notion"
+                if 'tab2_spec_link' not in st.session_state:
+                    st.session_state.tab2_spec_link = ""
+                if 'tab2_spec_content' not in st.session_state:
+                    st.session_state.tab2_spec_content = ""
+
+                # 초기화 플래그 체크
+                if st.session_state.get('tab2_spec_reset_flag', False):
+                    st.session_state.tab2_spec_title = ""
+                    st.session_state.tab2_spec_type = "Notion"
+                    st.session_state.tab2_spec_link = ""
+                    st.session_state.tab2_spec_content = ""
+                    st.session_state.tab2_spec_reset_flag = False
+
                 # 문서 제목
-                doc_title = st.text_input(
+                st.text_input(
                     "문서 제목 *",
                     placeholder="예: 공동구매 기능 스펙 문서",
                     key="tab2_spec_title"
                 )
                 
                 # 문서 유형
-                doc_type = st.selectbox(
+                st.selectbox(
                     "문서 유형 *",
                     ["Notion", "Jira", "기타"],
                     key="tab2_spec_type"
                 )
 
                 # 링크 URL
-                doc_link = st.text_input(
+                st.text_input(
                     "링크 URL *",
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab2_spec_link"
                 )
                 
                 # 문서 내용
-                doc_content = st.text_area(
+                st.text_area(
                     "문서 내용 *",
                     placeholder="기획 의도, 스펙, 요구사항 등을 자유롭게 붙여넣으세요.\n\n예:\n[기획 배경]\n현재 공동구매 기능은...\n\n[주요 기능]\n1. 브랜드 정보 입력 모달\n2. 캠페인 생성 기능\n...",
                     height=300,
@@ -697,26 +732,24 @@ else:
                 
                 # 저장 버튼
                 if st.button("💾 기획 문서 저장", type="primary", key="tab2_save_spec"):
-                    if not doc_title or not doc_type or not doc_link or not doc_content:
+                    if not st.session_state.tab2_spec_title or not st.session_state.tab2_spec_type or not st.session_state.tab2_spec_link or not st.session_state.tab2_spec_content:
                         st.warning("⚠️ 모든 항목을 입력해주세요!")
                     else:
                         new_spec = {
-                            "title": doc_title,
-                            "doc_type": doc_type,
-                            "link": doc_link,
-                            "content": doc_content,
+                            "title": st.session_state.tab2_spec_title,
+                            "doc_type": st.session_state.tab2_spec_type,
+                            "link": st.session_state.tab2_spec_link,
+                            "content": st.session_state.tab2_spec_content,
                         }
                         
                         with st.spinner("저장 중..."):
                             success = save_spec_doc_to_supabase(new_spec)
 
                         if success:
-                            # 세션 스테이트 초기화
-                            for key in ['tab2_spec_title', 'tab2_spec_type', 'tab2_spec_link', 'tab2_spec_content']:
-                                if key in st.session_state:
-                                    del st.session_state[key]
-                                    
-                            st.success(f"✅ 기획 문서 '{doc_title}'가 Supabase에 저장되었습니다!")
+                            # 초기화 플래그 설정 후 rerun
+                            st.session_state.tab2_spec_reset_flag = True
+                            
+                            st.success(f"✅ 기획 문서가 Supabase에 저장되었습니다!")
                             st.rerun()
                         else:
                             st.error("❌ 저장 실패!")
