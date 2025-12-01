@@ -303,7 +303,7 @@ if page == "test_cases":
                                                     st.error("❌ 저장 실패!")
                                     except Exception as e:
                                         st.error(f"❌ 수정 실패: {str(e)}")
-                             with col2:
+                            with col2:
                                 if st.button("❌ 취소", key=f"cancel_group_{group_id}", use_container_width=True):
                                     st.session_state.editing_test_case_id = None
                                     st.rerun()
