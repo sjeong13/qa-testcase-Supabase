@@ -1,6 +1,6 @@
 # supabase_helpers.py
 """
-Supabase 연동 헬퍼 함수들
+Supabase 연동 헬퍼 함수
 """
 
 import streamlit as st
