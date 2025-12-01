@@ -214,75 +214,75 @@ if page == "test_cases":
                         # 그룹이 없는 케이스 (줄글 형식 등)
                         ungrouped_cases.append(row)
 
-                    # 그룹 케이스 먼저 표시
-                    for idx, (group_id, group_info) in enumerate(grouped_cases.items()):
-                        rows = group_info['rows']
-                        category = group_info['category']
-                        input_type = group_info['input_type']
-                        first_id = group_info['first_id']
+                # 그룹 케이스 먼저 표시
+                for idx, (group_id, group_info) in enumerate(grouped_cases.items()):
+                    rows = group_info['rows']
+                    category = group_info['category']
+                    input_type = group_info['input_type']
+                    first_id = group_info['first_id']
 
-                        # 그룹 제목
-                        group_title = f"[{category}] 📊 표 그룹 ({len(rows)}개)"
+                    # 그룹 제목
+                    group_title = f"[{category}] 📊 표 그룹 ({len(rows)}개)"
 
-                        # 고유 키 생성
-                        unique_key = f"group_{first_id}_{idx}"
+                    # 고유 키 생성
+                    unique_key = f"group_{first_id}_{idx}"
 
-                        with st.expander(group_title, expanded=False):
-                            # 수정 모드 체크
-                            is_editing = st.session_state.editing_test_case_id == group_id
+                    with st.expander(group_title, expanded=False):
+                        # 수정 모드 체크
+                        is_editing = st.session_state.editing_test_case_id == group_id
 
-                            if is_editing:
-                                # 📝 수정 모드 (표 형태)
-                                st.info("💡 표를 수정하세요. 행 추가/삭제도 가능합니다.")
+                        if is_editing:
+                            # 📝 수정 모드 (표 형태)
+                            st.info("💡 표를 수정하세요. 행 추가/삭제도 가능합니다.")
 
-                                # DataFrame 생성 (소문자 필드명 사용)
-                                df_data = []
-                                for row in rows:
-                                    tc_data = row.get('data', {})
-                                    df_data.append({
-                                        'NO': tc_data.get('no', ''),
-                                        'CATEGORY': tc_data.get('category', ''),
-                                        'DEPTH 1': tc_data.get('depth1', ''),
-                                        'DEPTH 2': tc_data.get('depth 2', ''),
-                                        'DEPTH 3': tc_data.get('depth 3', ''),
-                                        'PRE-CONDITION': tc_data.get('pre_condition', ''),
-                                        'STEP': tc_data.get('step', ''),
-                                        'EXPECT RESULT': tc_data.get('expect_result', '')
-                                    })
+                            # DataFrame 생성 (소문자 필드명 사용)
+                            df_data = []
+                            for row in rows:
+                                tc_data = row.get('data', {})
+                                df_data.append({
+                                    'NO': tc_data.get('no', ''),
+                                    'CATEGORY': tc_data.get('category', ''),
+                                    'DEPTH 1': tc_data.get('depth1', ''),
+                                    'DEPTH 2': tc_data.get('depth 2', ''),
+                                    'DEPTH 3': tc_data.get('depth 3', ''),
+                                    'PRE-CONDITION': tc_data.get('pre_condition', ''),
+                                    'STEP': tc_data.get('step', ''),
+                                    'EXPECT RESULT': tc_data.get('expect_result', '')
+                                })
 
-                                edit_df = pd.DataFrame(df_data)
+                            edit_df = pd.DataFrame(df_data)
 
-                                edited_df = st.data_editor(
-                                    edit_df,
-                                    use_container_width=True,
-                                    num_rows="dynamic",
-                                    hide_index=True,
-                                    key=f"edit_group_{group_id}"
-                                )
+                            edited_df = st.data_editor(
+                                edit_df,
+                                use_container_width=True,
+                                num_rows="dynamic",
+                                hide_index=True,
+                                key=f"edit_group_{group_id}"
+                            )
                     
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    if st.button("💾 저장", key=f"save_group_{group_id}", use_container_width=True):
-                                        try:
-                                            # 기존 그룹 전체 삭제
-                                            for row in rows:
-                                                supabase.table('test_cases').delete().eq('id', row['id']).execute()
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("💾 저장", key=f"save_group_{group_id}", use_container_width=True):
+                                    try:
+                                        # 기존 그룹 전체 삭제
+                                        for row in rows:
+                                            supabase.table('test_cases').delete().eq('id', row['id']).execute()
 
-                                            # 새로운 데이터로 다시 저장
-                                            new_table_data = []
-                                            for _, row in edited_df.iterrows():
-                                                if pd.isna(row['CATEGORY']) or row['CATEGORY'] == '':
-                                                    continue
-                                                new_table_data.append({
-                                                    'NO': str(row['NO']),
-                                                    'CATEGORY': str(row['CATEGORY']),
-                                                    'DEPTH 1': str(row['DEPTH 1']),
-                                                    'DEPTH 2': str(row['DEPTH 2']),
-                                                    'DEPTH 3': str(row['DEPTH 3']),
-                                                    'PRE-CONDITION': str(row['PRE-CONDITION']),
-                                                    'STEP': str(row['STEP']),
-                                                    'EXPECT RESULT': str(row['EXPECT RESULT'])
-                                                })
+                                        # 새로운 데이터로 다시 저장
+                                        new_table_data = []
+                                        for _, row in edited_df.iterrows():
+                                            if pd.isna(row['CATEGORY']) or row['CATEGORY'] == '':
+                                                continue
+                                            new_table_data.append({
+                                                'NO': str(row['NO']),
+                                                'CATEGORY': str(row['CATEGORY']),
+                                                'DEPTH 1': str(row['DEPTH 1']),
+                                                'DEPTH 2': str(row['DEPTH 2']),
+                                                'DEPTH 3': str(row['DEPTH 3']),
+                                                'PRE-CONDITION': str(row['PRE-CONDITION']),
+                                                'STEP': str(row['STEP']),
+                                                'EXPECT RESULT': str(row['EXPECT RESULT'])
+                                            })
 
                                             if new_table_data:
                                                 group_test = {
