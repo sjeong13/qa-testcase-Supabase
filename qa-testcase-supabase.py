@@ -251,11 +251,11 @@ if page == "test_cases":
                                     
                             # 삭제 버튼
                             with col2:    
-                            if st.button("🗑️ 삭제", key=f"delete_{row['id']}", use_container_width=True):
-                                success = delete_test_case_from_supabase(row['id'])
-                                if success:
-                                    st.success("✅ 삭제되었습니다!")
-                                    st.rerun()
+                                if st.button("🗑️ 삭제", key=f"delete_{row['id']}", use_container_width=True):
+                                    success = delete_test_case_from_supabase(row['id'])
+                                    if success:
+                                        st.success("✅ 삭제되었습니다!")
+                                        st.rerun()
 
             else:
                 st.info("아직 저장된 테스트 케이스가 없습니다.")
