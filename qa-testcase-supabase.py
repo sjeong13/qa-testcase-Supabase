@@ -301,128 +301,128 @@ if page == "test_cases":
                                                     st.rerun()
                                                 else:
                                                     st.error("❌ 저장 실패!")
-                                        except Exception as e:
-                                            st.error(f"❌ 수정 실패: {str(e)}")
-                                with col2:
-                                    if st.button("❌ 취소", key=f"cancel_group_{group_id}", use_container_width=True):
-                                        st.session_state.editing_test_case_id = None
-                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ 수정 실패: {str(e)}")
+                             with col2:
+                                if st.button("❌ 취소", key=f"cancel_group_{group_id}", use_container_width=True):
+                                    st.session_state.editing_test_case_id = None
+                                    st.rerun()
+
+                        else:
+                            # 📖 보기 모드 (표 형태)
+                            st.write(f"**카테고리:** {category}")
+                            st.write(f"**타입:** {input_type}")
+                            st.write(f"**개수:** {len(rows)}개")
+
+                            # 표로 보여주기 (소문자 필드명)
+                            df_data = []
+                            for row in rows:
+                                tc_data = row.get('data', {})
+                                df_data.append({
+                                    'CATEGORY': tc_data.get('category', ''),
+                                    'DEPTH 1': tc_data.get('depth1', ''),
+                                    'DEPTH 2': tc_data.get('depth2', ''),
+                                    'DEPTH 3': tc_data.get('depth3', ''),
+                                    'PRE-CONDITION': tc_data.get('pre_condition', ''),
+                                    'STEP': tc_data.get('step', ''),
+                                    'EXPECT RESULT': tc_data.get('expect_result', '')
+                                })
+
+                            if df_data:
+                                df = pd.DataFrame(df_data)
+                                st.dataframe(df, use_container_width=True, hide_index=True)
 
                             else:
-                                # 📖 보기 모드 (표 형태)
-                                st.write(f"**카테고리:** {category}")
-                                st.write(f"**타입:** {input_type}")
-                                st.write(f"**개수:** {len(rows)}개")
+                                st.warning("⚠️ 표시할 데이터가 없습니다.")
 
-                                # 표로 보여주기 (소문자 필드명)
-                                df_data = []
-                                for row in rows:
-                                    tc_data = row.get('data', {})
-                                    df_data.append({
-                                        'CATEGORY': tc_data.get('category', ''),
-                                        'DEPTH 1': tc_data.get('depth1', ''),
-                                        'DEPTH 2': tc_data.get('depth2', ''),
-                                        'DEPTH 3': tc_data.get('depth3', ''),
-                                        'PRE-CONDITION': tc_data.get('pre_condition', ''),
-                                        'STEP': tc_data.get('step', ''),
-                                        'EXPECT RESULT': tc_data.get('expect_result', '')
-                                    })
-
-                                if df_data:
-                                    df = pd.DataFrame(df_data)
-                                    st.dataframe(df, use_container_width=True, hide_index=True)
-
-                                else:
-                                    st.warning("⚠️ 표시할 데이터가 없습니다.")
-
-                                col1, col2 = st.columns(2)
-                                # 수정 버튼
-                                with col1:
-                                    if st.button("✏️ 수정", key=f"edit_group_{group_id}", use_container_width=True):
-                                        st.session_state.editing_test_case_id = group_id
-                                        st.rerun()
+                            col1, col2 = st.columns(2)
+                            # 수정 버튼
+                            with col1:
+                                if st.button("✏️ 수정", key=f"edit_group_{group_id}", use_container_width=True):
+                                    st.session_state.editing_test_case_id = group_id
+                                    st.rerun()
                             
-                                # 삭제 버튼
-                                with col2:
-                                    if st.button("🗑️ 삭제", key=f"delete_group_{group_id}", use_container_width=True):
+                            # 삭제 버튼
+                            with col2:
+                                if st.button("🗑️ 삭제", key=f"delete_group_{group_id}", use_container_width=True):
+                                    try:
+                                        # 그룹 전체 삭제
+                                        for row in rows:
+                                            supabase.table('test_cases').delete().eq('id', row['id']).execute()
+                                        st.success("✅ 삭제되었습니다!")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ 삭제 실패: {str(e)}")
+                
+                # 그룹 없는 케이스 (줄글 형식 등)            
+                if ungrouped_cases:
+                    st.markdown("### 📝 개별 케이스")
+                    
+                    for row in ungrouped_cases:
+                        tc_data = row.get('data', {})
+                        
+                        with st.expander(f"[{row.get('category', '미분류')}] {row.get('name', '제목 없음')}", expanded=False):
+                            # 수정 모드 체크
+                            is_editing = st.session_state.editing_test_case_id == row['id']
+                            
+                            if is_editing:
+                                # 📝 수정 모드
+                                edited_category = st.text_input("카테고리", value=row.get('category', ''), key=f"edit_tc_cat_{row['id']}")
+                                edited_name = st.text_input("이름", value=row.get('name', ''), key=f"edit_tc_name_{row['id']}")
+                                edited_desc = st.text_area("설명", value=row.get('description', ''), key=f"edit_tc_desc_{row['id']}")
+                                edited_link = st.text_input("링크", value=row.get('link', ''), key=f"edit_tc_link_{row['id']}")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    if st.button("💾 저장", key=f"save_tc_{row['id']}", use_container_width=True):
                                         try:
-                                            # 그룹 전체 삭제
-                                            for row in rows:
-                                                supabase.table('test_cases').delete().eq('id', row['id']).execute()
-                                            st.success("✅ 삭제되었습니다!")
+                                            supabase.table('test_cases').update({
+                                                'category': edited_category,
+                                                'name': edited_name,
+                                                'description': edited_desc,
+                                                'link': edited_link
+                                            }).eq('id', row['id']).execute()
+                                            
+                                            st.session_state.editing_test_case_id = None
+                                            st.success("✅ 수정되었습니다!")
                                             st.rerun()
                                         except Exception as e:
-                                            st.error(f"❌ 삭제 실패: {str(e)}")
-                
-                    # 그룹 없는 케이스 (줄글 형식 등)            
-                    if ungrouped_cases:
-                        st.markdown("### 📝 개별 케이스")
-                    
-                        for row in ungrouped_cases:
-                            tc_data = row.get('data', {})
-                        
-                            with st.expander(f"[{row.get('category', '미분류')}] {row.get('name', '제목 없음')}", expanded=False):
-                                # 수정 모드 체크
-                                is_editing = st.session_state.editing_test_case_id == row['id']
+                                            st.error(f"❌ 수정 실패: {str(e)}")
+                                
+                                with col2:
+                                    if st.button("❌ 취소", key=f"cancel_tc_{row['id']}", use_container_width=True):
+                                        st.session_state.editing_test_case_id = None
+                                        st.rerun()
                             
-                                if is_editing:
-                                    # 📝 수정 모드
-                                    edited_category = st.text_input("카테고리", value=row.get('category', ''), key=f"edit_tc_cat_{row['id']}")
-                                    edited_name = st.text_input("이름", value=row.get('name', ''), key=f"edit_tc_name_{row['id']}")
-                                    edited_desc = st.text_area("설명", value=row.get('description', ''), key=f"edit_tc_desc_{row['id']}")
-                                    edited_link = st.text_input("링크", value=row.get('link', ''), key=f"edit_tc_link_{row['id']}")
+                            else:
+                                # 📖 보기 모드
+                                st.write(f"**카테고리:** {row.get('category', '미분류')}")
+                                st.write(f"**이름:** {row.get('name', '제목 없음')}")
+                                if row.get('description'):
+                                    st.write(f"**설명:** {row['description']}")
+                                if row.get('link'):
+                                    st.write(f"**링크:** {row['link']}")
                                 
-                                    col1, col2 = st.columns(2)
-                                    with col1:
-                                        if st.button("💾 저장", key=f"save_tc_{row['id']}", use_container_width=True):
-                                            try:
-                                                supabase.table('test_cases').update({
-                                                    'category': edited_category,
-                                                    'name': edited_name,
-                                                    'description': edited_desc,
-                                                    'link': edited_link
-                                                }).eq('id', row['id']).execute()
-                                            
-                                                st.session_state.editing_test_case_id = None
-                                                st.success("✅ 수정되었습니다!")
-                                                st.rerun()
-                                            except Exception as e:
-                                                st.error(f"❌ 수정 실패: {str(e)}")
+                                # data 컬럼 표시
+                                if tc_data:
+                                    with st.expander("📋 상세 데이터", expanded=False):
+                                        st.json(tc_data)
                                 
-                                    with col2:
-                                        if st.button("❌ 취소", key=f"cancel_tc_{row['id']}", use_container_width=True):
-                                            st.session_state.editing_test_case_id = None
+                                col1, col2 = st.columns(2)
+                                
+                                # 수정 버튼
+                                with col1:
+                                    if st.button("✏️ 수정", key=f"edit_tc_{row['id']}", use_container_width=True):
+                                        st.session_state.editing_test_case_id = row['id']
+                                        st.rerun()
+                                
+                                # 삭제 버튼
+                                with col2:
+                                    if st.button("🗑️ 삭제", key=f"delete_tc_{row['id']}", use_container_width=True):
+                                        success = delete_test_case_from_supabase(row['id'])
+                                        if success:
+                                            st.success("✅ 삭제되었습니다!")
                                             st.rerun()
-                            
-                                else:
-                                    # 📖 보기 모드
-                                    st.write(f"**카테고리:** {row.get('category', '미분류')}")
-                                    st.write(f"**이름:** {row.get('name', '제목 없음')}")
-                                    if row.get('description'):
-                                        st.write(f"**설명:** {row['description']}")
-                                    if row.get('link'):
-                                        st.write(f"**링크:** {row['link']}")
-                                
-                                    # data 컬럼 표시
-                                    if tc_data:
-                                        with st.expander("📋 상세 데이터", expanded=False):
-                                            st.json(tc_data)
-                                
-                                    col1, col2 = st.columns(2)
-                                
-                                    # 수정 버튼
-                                    with col1:
-                                        if st.button("✏️ 수정", key=f"edit_tc_{row['id']}", use_container_width=True):
-                                            st.session_state.editing_test_case_id = row['id']
-                                            st.rerun()
-                                
-                                    # 삭제 버튼
-                                    with col2:
-                                        if st.button("🗑️ 삭제", key=f"delete_tc_{row['id']}", use_container_width=True):
-                                            success = delete_test_case_from_supabase(row['id'])
-                                            if success:
-                                                st.success("✅ 삭제되었습니다!")
-                                                st.rerun()
 
             else:
                 st.info("아직 저장된 테스트 케이스가 없습니다.")
