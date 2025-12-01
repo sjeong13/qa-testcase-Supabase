@@ -1364,9 +1364,9 @@ else:
         else:
             st.info("아직 검색 히스토리가 없습니다.")
 
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)         
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)         
             
 
     # 하단 정보
