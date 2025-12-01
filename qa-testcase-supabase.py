@@ -575,7 +575,7 @@ else:
                             st.session_state.tab1_tc_free_content = ""
                             st.session_state.tab1_tc_free_category = ""
                                     
-                            st.success(f"✅ '{tc_free_title}' 테스트 케이스가 Supabase에 저장되었습니다!")
+                            st.success(f"✅ '{free_form_test['name']}' 테스트 케이스가 Supabase에 저장되었습니다!")
                             st.rerun()
                         else:
                             st.error("❌ 저장 실패!")
@@ -739,7 +739,7 @@ else:
                             st.session_state.tab2_spec_link = ""
                             st.session_state.tab2_spec_content = ""
                                     
-                            st.success(f"✅ 기획 문서 '{doc_title}'가 Supabase에 저장되었습니다!")
+                            st.success(f"✅ 기획 문서가 Supabase에 저장되었습니다!")
                             st.rerun()
                         else:
                             st.error("❌ 저장 실패!")
