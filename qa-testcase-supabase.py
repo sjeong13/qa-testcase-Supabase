@@ -525,6 +525,14 @@ else:
                     st.session_state.tab1_tc_free_content = ""
                 if 'tab1_tc_free_category' not in st.session_state:
                     st.session_state.tab1_tc_free_category = ""
+
+                # 초기화 플래그 체크 (이전 저장 후 rerun되면 초기화)
+                if st.session_state.get('tab1_tc_reset_flag', False):
+                    st.session_state.tab1_tc_free_title = ""
+                    st.session_state.tab1_tc_free_link = ""
+                    st.session_state.tab1_tc_free_content = ""
+                    st.session_state.tab1_tc_free_category = ""
+                    st.session_state.tab1_tc_reset_flag = False
                 
                 st.text_input(
                     "제목 *",
@@ -569,11 +577,8 @@ else:
                             saved_count = save_test_case_to_supabase(free_form_test)
 
                         if saved_count > 0:
-                            # 세션 스테이트를 빈 문자열로 초기화
-                            st.session_state.tab1_tc_free_title = ""
-                            st.session_state.tab1_tc_free_link = ""
-                            st.session_state.tab1_tc_free_content = ""
-                            st.session_state.tab1_tc_free_category = ""
+                            # 초기화 플래그 설정 후 rerun
+                            st.session_state.tab1_tc_reset_flag = True
                                     
                             st.success(f"✅ '{free_form_test['name']}' 테스트 케이스가 Supabase에 저장되었습니다!")
                             st.rerun()
@@ -687,7 +692,15 @@ else:
                     st.session_state.tab2_spec_link = ""
                 if 'tab2_spec_content' not in st.session_state:
                     st.session_state.tab2_spec_content = ""
-                    
+
+                # 초기화 플래그 체크
+                if st.session_state.get('tab2_spec_reset_flag', False):
+                    st.session_state.tab2_spec_title = ""
+                    st.session_state.tab2_spec_type = "Notion"
+                    st.session_state.tab2_spec_link = ""
+                    st.session_state.tab2_spec_content = ""
+                    st.session_state.tab2_spec_reset_flag = False
+
                 # 문서 제목
                 st.text_input(
                     "문서 제목 *",
@@ -733,12 +746,9 @@ else:
                             success = save_spec_doc_to_supabase(new_spec)
 
                         if success:
-                            # 세션 스테이트를 빈 문자열/기본값으로 초기화
-                            st.session_state.tab2_spec_title = ""
-                            st.session_state.tab2_spec_type = "Notion"
-                            st.session_state.tab2_spec_link = ""
-                            st.session_state.tab2_spec_content = ""
-                                    
+                            # 초기화 플래그 설정 후 rerun
+                            st.session_state.tab2_spec_reset_flag = True
+                            
                             st.success(f"✅ 기획 문서가 Supabase에 저장되었습니다!")
                             st.rerun()
                         else:
