@@ -206,7 +206,7 @@ if page == "test_cases":
                             grouped_cases[group_id] = {
                                 'rows': [],
                                 'category': row.get('category', '미분류'),
-                                'input_type': tc_data.get('input_type', 'unknown')
+                                'input_type': tc_data.get('input_type', 'unknown'),
                                 'first_id': row['id']  # 첫 번째 ID 저장 (고유 키)
                             }
                         grouped_cases[group_id]['rows'].append(row)
