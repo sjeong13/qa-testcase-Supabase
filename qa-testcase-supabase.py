@@ -528,21 +528,18 @@ else:
                 
                 tc_free_title = st.text_input(
                     "제목 *",
-                    value=st.session_state.tab1_tc_free_title,  # value 추가
                     placeholder="예: 쿠폰 지정 발행 테스트 설계",
                     key="tab1_tc_free_title"
                 )
 
                 tc_free_link = st.text_input(
                     "링크 URL",
-                    value=st.session_state.tab1_tc_free_link,  # value 추가
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab1_tc_free_link"
                 )
                 
                 tc_free_content = st.text_area(
                     "내용 *",
-                    value=st.session_state.tab1_tc_free_content,  # value 추가
                     placeholder="테스트 설계 내용을 자유롭게 작성하세요.\n\n[예시]\n1. BO에서 쿠폰 생성\n2. 특정 회원에게 쿠폰 지정 발행\n3. FO에서 쿠폰 사용 가능 여부 확인\n...",
                     height=300,
                     key="tab1_tc_free_content"
@@ -550,7 +547,6 @@ else:
                 
                 tc_free_category = st.text_input(
                     "카테고리 *",
-                    value=st.session_state.tab1_tc_free_category,  # value 추가
                     placeholder="쿠폰",
                     key="tab1_tc_free_category"
                 )
@@ -694,7 +690,6 @@ else:
                 # 문서 제목
                 doc_title = st.text_input(
                     "문서 제목 *",
-                    value=st.session_state.tab2_spec_title,  # value 추가
                     placeholder="예: 공동구매 기능 스펙 문서",
                     key="tab2_spec_title"
                 )
@@ -703,14 +698,12 @@ else:
                 doc_type = st.selectbox(
                     "문서 유형 *",
                     ["Notion", "Jira", "기타"],
-                    index=["Notion", "Jira", "기타"].index(st.session_state.tab2_spec_type),  # index 추가
                     key="tab2_spec_type"
                 )
 
                 # 링크 URL
                 doc_link = st.text_input(
                     "링크 URL *",
-                    value=st.session_state.tab2_spec_link,  # value 추가
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab2_spec_link"
                 )
@@ -718,7 +711,6 @@ else:
                 # 문서 내용
                 doc_content = st.text_area(
                     "문서 내용 *",
-                    value=st.session_state.tab2_spec_content,  # value 추가
                     placeholder="기획 의도, 스펙, 요구사항 등을 자유롭게 붙여넣으세요.\n\n예:\n[기획 배경]\n현재 공동구매 기능은...\n\n[주요 기능]\n1. 브랜드 정보 입력 모달\n2. 캠페인 생성 기능\n...",
                     height=300,
                     key="tab2_spec_content"
