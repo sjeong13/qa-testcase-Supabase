@@ -221,6 +221,9 @@ if page == "test_cases":
                     input_type = group_info['input_type']
                     first_id = group_info['first_id']
 
+                    # 그룹 내에서 id 기준 오름차순 정렬
+                    rows = sorted(rows, key=lambda x: x['id'])
+                    
                     # 그룹 제목
                     group_title = f"[{category}] 📊 표 그룹 ({len(rows)}개)"
 
@@ -229,40 +232,72 @@ if page == "test_cases":
 
                     with st.expander(group_title, expanded=False):
                         # 수정 모드 체크
-                        is_editing = st.session_state.editing_test_case_id == group_id
+                        is_editing = st.session_state.editing_test_case_id == unique_key
 
                         if is_editing:
-                            # 📝 수정 모드 (표 형태)
-                            st.info("💡 표를 수정하세요. 행 추가/삭제도 가능합니다.")
+                            # 📝 수정 모드
+                            st.info("💡 표를 수정하세요. 행을 추가하려면 아래 버튼을 사용하세요.")
 
-                            # DataFrame 생성 (소문자 필드명 사용)
-                            df_data = []
-                            for row in rows:
-                                tc_data = row.get('data', {})
-                                df_data.append({
-                                    'NO': tc_data.get('no', ''),
-                                    'CATEGORY': tc_data.get('category', ''),
-                                    'DEPTH 1': tc_data.get('depth1', ''),
-                                    'DEPTH 2': tc_data.get('depth 2', ''),
-                                    'DEPTH 3': tc_data.get('depth 3', ''),
-                                    'PRE-CONDITION': tc_data.get('pre_condition', ''),
-                                    'STEP': tc_data.get('step', ''),
-                                    'EXPECT RESULT': tc_data.get('expect_result', '')
-                                })
+                            # 수정용 세션 스테이트 관리
+                            edit_session_key = f"edit_df_{unique_key}"
 
-                            edit_df = pd.DataFrame(df_data)
+                            # 초기 로드 시에만 데이터 설정
+                            if edit_session_key not in st.session_state:
+                                df_data = []
+                                for row in rows:
+                                    tc_data = row.get('data', {})
+                                    df_data.append({
+                                        'NO': tc_data.get('no', ''),
+                                        'CATEGORY': tc_data.get('category', ''),
+                                        'DEPTH 1': tc_data.get('depth1', ''),
+                                        'DEPTH 2': tc_data.get('depth2', ''),
+                                        'DEPTH 3': tc_data.get('depth3', ''),
+                                        'PRE-CONDITION': tc_data.get('pre_condition', ''),
+                                        'STEP': tc_data.get('step', ''),
+                                        'EXPECT RESULT': tc_data.get('expect_result', '')
+                                    })
+                                st.session_state[edit_session_key] = pd.DataFrame(df_data)
 
+                            # 행 추가 버튼
+                            col_add, col_del = st.columns([1, 1])
+                            with col_add:
+                                if st.button("➕ 행 추가", key=f"add_row_{unique_key}"):
+                                    new_row = pd.DataFrame({
+                                        'NO': [''],
+                                        'CATEGORY': [''],
+                                        'DEPTH 1': [''],
+                                        'DEPTH 2': [''],
+                                        'DEPTH 3': [''],
+                                        'PRE-CONDITION': [''],
+                                        'STEP': [''],
+                                        'EXPECT RESULT': ['']
+                                    })
+                                    st.session_state[edit_session_key] = pd.concat(
+                                        [st.session_state[edit_session_key], new_row],
+                                        ignore_index=True
+                                    )
+                                    st.rerun()
+
+                            with col_del:
+                                if st.button("🗑️ 마지막 행 삭제", key=f"del_row_{unique_key}"):
+                                    if len(st.session_state[edit_session_key]) > 1:
+                                        st.session_state[edit_session_key] = st.session_state[edit_session_key].iloc[:-1]
+                                        st.rerun()
+
+                            # 데이터 에디터
                             edited_df = st.data_editor(
-                                edit_df,
+                                st.session_state[edit_session_key],
                                 use_container_width=True,
-                                num_rows="dynamic",
                                 hide_index=True,
-                                key=f"edit_group_{group_id}"
+                                key=f"editor_{unique_key}"
                             )
+
+                            # 변경사항 즉시 반영
+                            st.session_state[edit_session_key] = edited_df
                     
                             col1, col2 = st.columns(2)
                             with col1:
-                                if st.button("💾 저장", key=f"save_group_{group_id}", use_container_width=True):
+                                if st.button("💾 저장", key=f"save_{unique_key}", use_container_width=True):
                                     try:
                                         # 기존 그룹 전체 삭제
                                         for row in rows:
@@ -271,8 +306,11 @@ if page == "test_cases":
                                         # 새로운 데이터로 다시 저장
                                         new_table_data = []
                                         for _, row in edited_df.iterrows():
-                                            if pd.isna(row['CATEGORY']) or row['CATEGORY'] == '':
+                                            # 빈 행 필터링 개선
+                                            if (pd.isna(row['CATEGORY']) or str(row['CATEGORY']).strip() == '') and \
+                                               (pd.isna(row['DEPTH 1']) or str(row['DEPTH 1']).strip() == ''):
                                                 continue
+                                            
                                             new_table_data.append({
                                                 'NO': str(row['NO']),
                                                 'CATEGORY': str(row['CATEGORY']),
@@ -284,41 +322,51 @@ if page == "test_cases":
                                                 'EXPECT RESULT': str(row['EXPECT RESULT'])
                                             })
 
-                                            if new_table_data:
-                                                group_test = {
-                                                    "group_id": group_id,
-                                                    "input_type": input_type,
-                                                    "category": category,
-                                                    "name": f"({len(new_table_data)}개)",
-                                                    "table_data": new_table_data
-                                                }
+                                        if new_table_data:
+                                            group_test = {
+                                                "group_id": group_id,
+                                                "input_type": input_type,
+                                                "category": category,
+                                                "name": f"({len(new_table_data)}개)",
+                                                "table_data": new_table_data
+                                            }
 
-                                                saved_count = save_test_case_to_supabase(group_test)
+                                            saved_count = save_test_case_to_supabase(group_test)
 
-                                                if saved_count > 0:
-                                                    st.session_state.editing_test_case_id = None
-                                                    st.success("✅ 수정되었습니다!")
-                                                    st.rerun()
-                                                else:
-                                                    st.error("❌ 저장 실패!")
+                                            if saved_count > 0:
+                                                st.session_state.editing_test_case_id = None
+                                                # 세션 스테이트 정리
+                                                if edit_session_key in st.session_state:
+                                                    del st.session_state[edit_session_key]
+                                                st.success("✅ 수정되었습니다!")
+                                                st.rerun()
+                                            else:
+                                                st.error("❌ 저장 실패!")
+                                        else:
+                                            st.warning("⚠️ 저장할 데이터가 없습니다. CATEGORY 또는 DEPTH 1을 입력하세요.")
                                     except Exception as e:
                                         st.error(f"❌ 수정 실패: {str(e)}")
+                                        
                             with col2:
-                                if st.button("❌ 취소", key=f"cancel_group_{group_id}", use_container_width=True):
+                                if st.button("❌ 취소", key=f"cancel_{unique_key}", use_container_width=True):
                                     st.session_state.editing_test_case_id = None
+                                    # 세션 스테이트 정리
+                                    if edit_session_key in st.session_state:
+                                        del st.session_state[edit_session_key]
                                     st.rerun()
 
                         else:
-                            # 📖 보기 모드 (표 형태)
+                            # 📖 보기 모드
                             st.write(f"**카테고리:** {category}")
                             st.write(f"**타입:** {input_type}")
                             st.write(f"**개수:** {len(rows)}개")
 
-                            # 표로 보여주기 (소문자 필드명)
+                            # 표로 보여주기
                             df_data = []
                             for row in rows:
                                 tc_data = row.get('data', {})
                                 df_data.append({
+                                    'NO': tc_data.get('no', ''),
                                     'CATEGORY': tc_data.get('category', ''),
                                     'DEPTH 1': tc_data.get('depth1', ''),
                                     'DEPTH 2': tc_data.get('depth2', ''),
@@ -331,22 +379,21 @@ if page == "test_cases":
                             if df_data:
                                 df = pd.DataFrame(df_data)
                                 st.dataframe(df, use_container_width=True, hide_index=True)
-
                             else:
                                 st.warning("⚠️ 표시할 데이터가 없습니다.")
 
                             col1, col2 = st.columns(2)
+                            
                             # 수정 버튼
                             with col1:
-                                if st.button("✏️ 수정", key=f"edit_group_{group_id}", use_container_width=True):
-                                    st.session_state.editing_test_case_id = group_id
+                                if st.button("✏️ 수정", key=f"edit_{unique_key}", use_container_width=True):
+                                    st.session_state.editing_test_case_id = unique_key
                                     st.rerun()
                             
                             # 삭제 버튼
                             with col2:
-                                if st.button("🗑️ 삭제", key=f"delete_group_{group_id}", use_container_width=True):
+                                if st.button("🗑️ 삭제", key=f"delete_{unique_key}", use_container_width=True):
                                     try:
-                                        # 그룹 전체 삭제
                                         for row in rows:
                                             supabase.table('test_cases').delete().eq('id', row['id']).execute()
                                         st.success("✅ 삭제되었습니다!")
