@@ -343,8 +343,8 @@ elif page == "spec_docs":
                                     except Exception as e:
                                         st.error(f"❌ 삭제 실패: {str(e)}")
 
-                else:
-                    st.info("아직 저장된 기획 문서가 없습니다.")
+            else:
+                st.info("아직 저장된 기획 문서가 없습니다.")
                     
         except Exception as e:
             st.error(f"❌ 조회 실패: {str(e)}")
