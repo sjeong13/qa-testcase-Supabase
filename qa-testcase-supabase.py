@@ -526,26 +526,26 @@ else:
                 if 'tab1_tc_free_category' not in st.session_state:
                     st.session_state.tab1_tc_free_category = ""
                 
-                tc_free_title = st.text_input(
+                st.text_input(
                     "제목 *",
                     placeholder="예: 쿠폰 지정 발행 테스트 설계",
                     key="tab1_tc_free_title"
                 )
 
-                tc_free_link = st.text_input(
+                st.text_input(
                     "링크 URL",
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab1_tc_free_link"
                 )
                 
-                tc_free_content = st.text_area(
+                st.text_area(
                     "내용 *",
                     placeholder="테스트 설계 내용을 자유롭게 작성하세요.\n\n[예시]\n1. BO에서 쿠폰 생성\n2. 특정 회원에게 쿠폰 지정 발행\n3. FO에서 쿠폰 사용 가능 여부 확인\n...",
                     height=300,
                     key="tab1_tc_free_content"
                 )
                 
-                tc_free_category = st.text_input(
+                st.text_input(
                     "카테고리 *",
                     placeholder="쿠폰",
                     key="tab1_tc_free_category"
@@ -553,15 +553,16 @@ else:
                 
                 # 저장 버튼 및 로직
                 if st.button("💾 줄글 형식 저장", type="primary", key="tab1_save_free_form_tc"):
-                    if not tc_free_title or not tc_free_content or not tc_free_category:
+                    # 세션 스테이트에서 직접 값 가져오기
+                    if not st.session_state.tab1_tc_free_title or not st.session_state.tab1_tc_free_content or not st.session_state.tab1_tc_free_category:
                         st.warning("⚠️ 모든 항목을 입력해주세요!")
                     else:
                         # 줄글 형식으로 저장
                         free_form_test = {
-                            "category": tc_free_category if tc_free_category else "기타",
-                            "name": tc_free_title,
-                            "link": tc_free_link,
-                            "description": tc_free_content,
+                            "category": st.session_state.tab1_tc_free_category if st.session_state.tab1_tc_free_category else "기타",
+                            "name": st.session_state.tab1_tc_free_title,
+                            "link": st.session_state.tab1_tc_free_link,
+                            "description": st.session_state.tab1_tc_free_content,
                             "input_type": "free_form"
                         }
                         with st.spinner("저장 중..."):
@@ -688,28 +689,28 @@ else:
                     st.session_state.tab2_spec_content = ""
                     
                 # 문서 제목
-                doc_title = st.text_input(
+                st.text_input(
                     "문서 제목 *",
                     placeholder="예: 공동구매 기능 스펙 문서",
                     key="tab2_spec_title"
                 )
                 
                 # 문서 유형
-                doc_type = st.selectbox(
+                st.selectbox(
                     "문서 유형 *",
                     ["Notion", "Jira", "기타"],
                     key="tab2_spec_type"
                 )
 
                 # 링크 URL
-                doc_link = st.text_input(
+                st.text_input(
                     "링크 URL *",
                     placeholder="https://www.notion.so/imweb/...",
                     key="tab2_spec_link"
                 )
                 
                 # 문서 내용
-                doc_content = st.text_area(
+                st.text_area(
                     "문서 내용 *",
                     placeholder="기획 의도, 스펙, 요구사항 등을 자유롭게 붙여넣으세요.\n\n예:\n[기획 배경]\n현재 공동구매 기능은...\n\n[주요 기능]\n1. 브랜드 정보 입력 모달\n2. 캠페인 생성 기능\n...",
                     height=300,
@@ -718,14 +719,14 @@ else:
                 
                 # 저장 버튼
                 if st.button("💾 기획 문서 저장", type="primary", key="tab2_save_spec"):
-                    if not doc_title or not doc_type or not doc_link or not doc_content:
+                    if not st.session_state.tab2_spec_title or not st.session_state.tab2_spec_type or not st.session_state.tab2_spec_link or not st.session_state.tab2_spec_content:
                         st.warning("⚠️ 모든 항목을 입력해주세요!")
                     else:
                         new_spec = {
-                            "title": doc_title,
-                            "doc_type": doc_type,
-                            "link": doc_link,
-                            "content": doc_content,
+                            "title": st.session_state.tab2_spec_title,
+                            "doc_type": st.session_state.tab2_spec_type,
+                            "link": st.session_state.tab2_spec_link,
+                            "content": st.session_state.tab2_spec_content,
                         }
                         
                         with st.spinner("저장 중..."):
