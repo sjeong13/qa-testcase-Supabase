@@ -207,6 +207,7 @@ if page == "test_cases":
                                 'rows': [],
                                 'category': row.get('category', '미분류'),
                                 'input_type': tc_data.get('input_type', 'unknown')
+                                'first_id': row['id']  # 첫 번째 ID 저장 (고유 키)
                             }
                         grouped_cases[group_id]['rows'].append(row)
                     else:
@@ -214,13 +215,17 @@ if page == "test_cases":
                         ungrouped_cases.append(row)
 
                     # 그룹 케이스 먼저 표시
-                    for group_id, group_info in grouped_cases.items():
+                    for idx, (group_id, group_info) in enumerate(grouped_cases.items()):
                         rows = group_info['rows']
                         category = group_info['category']
                         input_type = group_info['input_type']
+                        first_id = group_info['first_id']
 
                         # 그룹 제목
                         group_title = f"[{category}] 📊 표 그룹 ({len(rows)}개)"
+
+                        # 고유 키 생성
+                        unique_key = f"group_{first_id}_{idx}"
 
                         with st.expander(group_title, expanded=False):
                             # 수정 모드 체크
@@ -230,19 +235,19 @@ if page == "test_cases":
                                 # 📝 수정 모드 (표 형태)
                                 st.info("💡 표를 수정하세요. 행 추가/삭제도 가능합니다.")
 
-                                # DataFrame 생성
+                                # DataFrame 생성 (소문자 필드명 사용)
                                 df_data = []
                                 for row in rows:
                                     tc_data = row.get('data', {})
                                     df_data.append({
-                                        'NO': tc_data.get('NO', ''),
-                                        'CATEGORY': tc_data.get('CATEGORY', ''),
-                                        'DEPTH 1': tc_data.get('DEPTH 1', ''),
-                                        'DEPTH 2': tc_data.get('DEPTH 2', ''),
-                                        'DEPTH 3': tc_data.get('DEPTH 3', ''),
-                                        'PRE-CONDITION': tc_data.get('PRE-CONDITION', ''),
-                                        'STEP': tc_data.get('STEP', ''),
-                                        'EXPECT RESULT': tc_data.get('EXPECT RESULT', '')
+                                        'NO': tc_data.get('no', ''),
+                                        'CATEGORY': tc_data.get('category', ''),
+                                        'DEPTH 1': tc_data.get('depth1', ''),
+                                        'DEPTH 2': tc_data.get('depth 2', ''),
+                                        'DEPTH 3': tc_data.get('depth 3', ''),
+                                        'PRE-CONDITION': tc_data.get('pre_condition', ''),
+                                        'STEP': tc_data.get('step', ''),
+                                        'EXPECT RESULT': tc_data.get('expect_result', '')
                                     })
 
                                 edit_df = pd.DataFrame(df_data)
@@ -309,25 +314,26 @@ if page == "test_cases":
                                 st.write(f"**타입:** {input_type}")
                                 st.write(f"**개수:** {len(rows)}개")
 
-                                # 표로 보여주기
+                                # 표로 보여주기 (소문자 필드명)
                                 df_data = []
                                 for row in rows:
                                     tc_data = row.get('data', {})
                                     df_data.append({
-                                        'NO': tc_data.get('NO', ''),
-                                        'CATEGORY': tc_data.get('CATEGORY', ''),
-                                        'DEPTH 1': tc_data.get('DEPTH 1', ''),
-                                        'DEPTH 2': tc_data.get('DEPTH 2', ''),
-                                        'DEPTH 3': tc_data.get('DEPTH 3', ''),
-                                        'PRE-CONDITION': tc_data.get('PRE-CONDITION', ''),
-                                        'STEP': tc_data.get('STEP', ''),
-                                        'EXPECT RESULT': tc_data.get('EXPECT RESULT', '')
-
+                                        'CATEGORY': tc_data.get('category', ''),
+                                        'DEPTH 1': tc_data.get('depth1', ''),
+                                        'DEPTH 2': tc_data.get('depth2', ''),
+                                        'DEPTH 3': tc_data.get('depth3', ''),
+                                        'PRE-CONDITION': tc_data.get('pre_condition', ''),
+                                        'STEP': tc_data.get('step', ''),
+                                        'EXPECT RESULT': tc_data.get('expect_result', '')
                                     })
 
                                 if df_data:
                                     df = pd.DataFrame(df_data)
                                     st.dataframe(df, use_container_width=True, hide_index=True)
+
+                                else:
+                                    st.warning("⚠️ 표시할 데이터가 없습니다.")
 
                                 col1, col2 = st.columns(2)
                                 # 수정 버튼
