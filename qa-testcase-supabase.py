@@ -1020,7 +1020,7 @@ else:
                     st.warning("⚠️ 먼저 테스트 케이스나 기획 문서를 추가해주세요!")
                     st.info("💡 왼쪽 사이드바에서 데이터를 추가할 수 있습니다.")
                 else:
-                    st.info(f"📊 현재 **{tc_count}개 +α**의 테스트 케이스와 **{doc_count}개**의 기획 문서를 학습할 수 있습니다.")
+                    st.info(f"📊 현재 **{tc_count}개 +α** 의 테스트 케이스와 **{doc_count}개**의 기획 문서를 학습할 수 있습니다.")
             except:
                 pass
                 
